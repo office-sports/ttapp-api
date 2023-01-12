@@ -1,5 +1,19 @@
 package models
 
+type Game struct {
+	TournamentId   int    `json:"tournament_id"`
+	OfficeId       int    `json:"office_id"`
+	MatchId        int    `json:"match_id"`
+	GroupName      string `json:"group_name"`
+	DateOfMatch    string `json:"date_of_match"`
+	HomePlayerId   int    `json:"home_player_id"`
+	AwayPlayerId   int    `json:"away_player_id"`
+	HomePlayerName string `json:"home_player_name"`
+	AwayPlayerName string `json:"away_player_name"`
+	HomeScoreTotal int    `json:"home_score_total"`
+	AwayScoreTotal int    `json:"away_score_total"`
+}
+
 type GameResult struct {
 	MatchId        int        `json:"match_id"`
 	GroupName      string     `json:"group_name"`
@@ -12,6 +26,7 @@ type GameResult struct {
 	WinnerId       int        `json:"winner_id"`
 	HomeScoreTotal int        `json:"home_score_total"`
 	AwayScoreTotal int        `json:"away_score_total"`
+	IsWalkover     int        `json:"is_walkover"`
 	HomeElo        int        `json:"home_elo"`
 	AwayElo        int        `json:"away_elo"`
 	HomeEloDiff    int        `json:"home_elo_diff"`
@@ -36,4 +51,16 @@ type GameResultSetScores struct {
 	S4ap *int `json:"s4ap"`
 	S5hp *int `json:"s5hp"`
 	S5ap *int `json:"s5ap"`
+	S6hp *int `json:"s6hp"`
+	S6ap *int `json:"s6ap"`
+	S7hp *int `json:"s7hp"`
+	S7ap *int `json:"s7ap"`
+}
+
+type GameMode struct {
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	ShortName    string `json:"short_name"`
+	WinsRequired int    `json:"wins_required"`
+	MaxSets      int    `json:"max_sets"`
 }

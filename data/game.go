@@ -5,28 +5,28 @@ import (
 	"github.com/office-sports/ttapp-api/models"
 )
 
-func GetOffices() ([]*models.Office, error) {
-	rows, err := models.DB.Query(queries.GetOfficesQuery())
+func GetGameModes() ([]*models.GameMode, error) {
+	rows, err := models.DB.Query(queries.GetGameModesQuery())
 
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	offices := make([]*models.Office, 0)
+	gm := make([]*models.GameMode, 0)
 	for rows.Next() {
-		o := new(models.Office)
-		err := rows.Scan(&o.ID, &o.Name, &o.IsDefault)
+		o := new(models.GameMode)
+		err := rows.Scan(&o.ID, &o.Name, &o.ShortName, &o.WinsRequired, &o.MaxSets)
 		if err != nil {
 			return nil, err
 		}
 
-		offices = append(offices, o)
+		gm = append(gm, o)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return offices, nil
+	return gm, nil
 }
