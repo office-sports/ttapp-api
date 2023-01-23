@@ -96,6 +96,7 @@ func GetTournamentResultsQuery() string {
 			s6.home_points as s6hp, s6.away_points s6ap,
 			s7.home_points as s7hp, s7.away_points s7ap
 			from game g
+			join tournament t on g.tournament_id = t.id
 			join game_mode gm on gm.id = g.game_mode_id
 			left join player p1 on p1.id = g.home_player_id
 			left join player p2 on p2.id = g.away_player_id

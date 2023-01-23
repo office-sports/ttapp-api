@@ -44,9 +44,9 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&summary.HomeName, &summary.AwayName, &summary.GroupName, &summary.TournamentName,
-			&summary.HomeTotalScore, &summary.AwayTotalScore, &summary.HomeTotalPoints, &summary.AwayTotalPoints,
-			&summary.HomePointsPerc, &summary.AwayPointsPerc)
+		err := rows.Scan(&summary.GameStartingServerId, &summary.HomeName, &summary.AwayName, &summary.GroupName,
+			&summary.TournamentName, &summary.HomeTotalScore, &summary.AwayTotalScore, &summary.HomeTotalPoints,
+			&summary.AwayTotalPoints, &summary.HomePointsPerc, &summary.AwayPointsPerc)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 	awayPointsScored := 0
 	for rows.Next() {
 		ge := new(models.GameEvent)
-		err := rows.Scan(&ge.GameStartingServerId, &ge.IsHomePoint, &ge.IsAwayPoint,
+		err := rows.Scan(&ge.IsHomePoint, &ge.IsAwayPoint,
 			&ge.HomePlayerId, &ge.AwayPlayerId, &ge.Timestamp, &ge.SetNumber)
 		if err != nil {
 			return nil, err
@@ -97,22 +97,30 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 		ge.HomePointsScored = homePointsScored
 		ge.AwayPointsScored = awayPointsScored
 
-		serverId := ge.GameStartingServerId
-		var otherServerId int
-		if serverId == ge.HomePlayerId {
-			otherServerId = ge.AwayPlayerId
-			sets[ge.SetNumber].SetSummary.HomeServes++
-			if ge.IsHomePoint == 1 {
-				summary.HomeOwnServePointsTotal++
-			}
+		gameFirstServerId := summary.GameStartingServerId
+		var gameSecondServerId int
+		if gameFirstServerId == ge.HomePlayerId {
+			gameSecondServerId = ge.AwayPlayerId
 		} else {
-			otherServerId = ge.HomePlayerId
-			sets[ge.SetNumber].SetSummary.AwayServes++
-			if ge.IsAwayPoint == 1 {
-				summary.AwayOwnServePointsTotal++
-			}
+			gameSecondServerId = ge.HomePlayerId
 		}
-		servers := [2]int{serverId, otherServerId}
+
+		//serverId := summary.GameStartingServerId
+		//var otherServerId int
+		//if serverId == ge.HomePlayerId {
+		//	otherServerId = ge.AwayPlayerId
+		//	sets[ge.SetNumber].SetSummary.HomeServes++
+		//	//if ge.IsHomePoint == 1 {
+		//	//	summary.HomeOwnServePointsTotal++
+		//	//}
+		//} else {
+		//	otherServerId = ge.HomePlayerId
+		//	sets[ge.SetNumber].SetSummary.AwayServes++
+		//	//if ge.IsAwayPoint == 1 {
+		//	//	summary.AwayOwnServePointsTotal++
+		//	//}
+		//}
+		servers := [2]int{gameFirstServerId, gameSecondServerId}
 		pointsScored := homePointsScored + awayPointsScored
 
 		var currentServerIndex int //, setStartingServer, currentserver int
@@ -124,13 +132,17 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 		} else {
 			currentServerIndex = int(float64(pointsScored)+float64(ge.SetNumber%2)) % 2
 		}
-		//setStartingServer := servers[(ge.SetNumber+1)%2]
-		currentServer := servers[currentServerIndex]
 
-		if currentServer == ge.HomePlayerId {
+		ge.CurrentSetStartingServer = servers[(ge.SetNumber+1)%2]
+		ge.CurrentServer = servers[currentServerIndex]
+		//setStartingServer := servers[(ge.SetNumber+1)%2]
+
+		if ge.CurrentServer == ge.HomePlayerId {
 			summary.HomeServesTotal++
+			summary.HomeOwnServePointsTotal++
 		} else {
 			summary.AwayServesTotal++
+			summary.AwayOwnServePointsTotal++
 		}
 
 	}

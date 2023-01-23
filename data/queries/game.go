@@ -9,6 +9,7 @@ func GetGameModesQuery() string {
 
 func GetGameTimelineSummaryQuery() string {
 	return `select
+    g.server_id as serverId,
     p1.name homeName, p2.name as awayName, tg.name as groupName, t.name as tournamentName,
     g.home_score as homeTotalScore, g.away_score as awayTotalScore,
     sum(p.is_home_point) as homeTotalPoints, sum(p.is_away_point) as awayTotalPoints,
@@ -25,7 +26,6 @@ func GetGameTimelineSummaryQuery() string {
 
 func GetGameTimelineQuery() string {
 	return `select
-    	g.server_id as serverId,
 		p.is_home_point as isHomePoint, p.is_away_point as isAwayPoint,
     	g.home_player_id as homePlayerId, g.away_player_id as awayPlayerId,
 		unix_timestamp(p.time) as timestamp,

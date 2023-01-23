@@ -121,7 +121,7 @@ func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
 	if tid != 0 {
 		q = q + ` and g.tournament_id = ? `
 	} else {
-		q = q + ` and g.tournament_id != ? `
+		q = q + ` and t.is_finished = ? and t.office_id = 1 `
 	}
 
 	q += ` group by g.id order by g.date_played DESC limit ? `

@@ -96,6 +96,7 @@ type SetSummary struct {
 }
 
 type GameTimelineGameSummary struct {
+	GameStartingServerId    int    `json:"game_starting_server_id"`
 	HomeName                string `json:"home_name"`
 	AwayName                string `json:"away_name"`
 	GroupName               string `json:"group_name"`
@@ -115,7 +116,6 @@ type GameTimelineGameSummary struct {
 }
 
 type GameEvent struct {
-	GameStartingServerId     int `json:"game_starting_server_id"`
 	CurrentSetStartingServer int `json:"current_set_starting_server"`
 	CurrentServer            int `json:"current_server"`
 	IsHomePoint              int `json:"is_home_point"`
