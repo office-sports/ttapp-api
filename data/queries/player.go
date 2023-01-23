@@ -46,6 +46,8 @@ func GetPlayerEloHistoryQuery() string {
 func GetBasePlayerScoresQuery() string {
 	return `select 
     	g.id, 
+    	g.tournament_id as tournamentId,
+    	g.office_id as officeId,
 		tg.name as groupName, 
 		g.date_of_match as dateOfMatch, 
 		g.date_played as datePlayed,

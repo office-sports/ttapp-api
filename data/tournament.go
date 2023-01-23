@@ -73,13 +73,17 @@ func GetLiveTournament() ([]*models.Tournament, error) {
 }
 
 func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
-	q := queries.GetBaseTournamentScheduleQuery() +
-		` where g.tournament_id = ? and g.is_finished = 0
-		group by g.id order by g.date_of_match, g.id asc limit ?`
 	if num == 0 {
-		// set max limit of schedules to 1000, thi is way more than needed
 		num = 1000
 	}
+	q := queries.GetBaseTournamentScheduleQuery() + ` where g.is_finished = 0 and tt.is_finished = 0 `
+	if tid != 0 {
+		q = q + ` and g.tournament_id = ? `
+	} else {
+		q = q + ` and g.tournament_id != ? `
+	}
+
+	q += ` group by g.id order by g.date_of_match, g.id asc limit ? `
 
 	rows, err := models.DB.Query(q, tid, num)
 
@@ -99,6 +103,58 @@ func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 		}
 
 		results = append(results, g)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
+	if num == 0 {
+		num = 1000
+	}
+
+	q := queries.GetTournamentResultsQuery() + ` where g.is_finished = 1 `
+	if tid != 0 {
+		q = q + ` and g.tournament_id = ? `
+	} else {
+		q = q + ` and g.tournament_id != ? `
+	}
+
+	q += ` group by g.id order by g.date_played DESC limit ? `
+
+	rows, err := models.DB.Query(q, tid, num)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]*models.GameResult, 0)
+	for rows.Next() {
+		g := new(models.GameResult)
+		ss := new(models.GameResultSetScores)
+		err := rows.Scan(&g.MatchId, &g.GroupName, &g.TournamentId, &g.OfficeId, &g.DateOfMatch, &g.DatePlayed,
+			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
+			&g.AwayScoreTotal, &g.IsWalkover, &g.HomeElo, &g.NewHomeElo, &g.AwayElo, &g.NewAwayElo,
+			&g.HomeEloDiff, &g.AwayEloDiff, &g.HasPoints, &ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap,
+			&ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap, &ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, g)
+
+		SetGameResultSetScores(g, 1, ss.S1hp, ss.S1ap)
+		SetGameResultSetScores(g, 2, ss.S2hp, ss.S2ap)
+		SetGameResultSetScores(g, 3, ss.S3hp, ss.S3ap)
+		SetGameResultSetScores(g, 4, ss.S4hp, ss.S4ap)
+		SetGameResultSetScores(g, 5, ss.S5hp, ss.S5ap)
+		SetGameResultSetScores(g, 6, ss.S6hp, ss.S6ap)
+		SetGameResultSetScores(g, 7, ss.S7hp, ss.S7ap)
 	}
 
 	if err != nil {
@@ -154,6 +210,107 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	if err != nil {
 		return nil, err
 	}
+
+	return groups, nil
+}
+
+func GetTournamentLadders(id int) ([]*models.Ladder, error) {
+
+	rows, err := models.DB.Query(queries.GetTournamentGroupsQuery(), id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	groups := make([]*models.Ladder, 0)
+	for rows.Next() {
+		l := new(models.Ladder)
+		err := rows.Scan(&l.GroupId, &l.GroupName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := models.DB.Query(queries.GetTournamentGroupQuery(), id, l.GroupId)
+		if err != nil {
+			return nil, err
+		}
+
+		for r.Next() {
+			group := new(models.LadderGroup)
+			err = r.Scan(&group.Order, &group.GameId, &group.GameName, &group.MaxStage,
+				&group.Stage, &group.HomePlayerId, &group.AwayPlayerId,
+				&group.WinnerId, &group.HomeScoreTotal, &group.AwayScoreTotal, &group.IsWalkover,
+				&group.HomePlayerDisplayName, &group.AwayPlayerDisplayName)
+
+			if group.HomePlayerId == 0 {
+				s := strings.Split(group.HomePlayerDisplayName, ".")
+				if s[0] == "W" {
+					group.HomePlayerDisplayName = "Winner, #" + s[1]
+				} else if s[0] == "L" {
+					group.HomePlayerDisplayName = "Loser, #" + s[1]
+				}
+			}
+
+			if group.AwayPlayerId == 0 {
+				s := strings.Split(group.AwayPlayerDisplayName, ".")
+				if s[0] == "W" {
+					group.AwayPlayerDisplayName = "Winner, #" + s[1]
+				} else if s[0] == "L" {
+					group.AwayPlayerDisplayName = "Loser, #" + s[1]
+				}
+			}
+
+			l.LadderGroup = append(l.LadderGroup, *group)
+		}
+
+		r.Close()
+
+		groups = append(groups, l)
+	}
+
+	/*
+		results := make([]*models.GroupStandingsPlayer, 0)
+		for rows.Next() {
+			p := new(models.GroupStandingsPlayer)
+			//ss := new(models.GameResultSetScores)
+			err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
+				&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
+				&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
+			if err != nil {
+				return nil, err
+			}
+
+			results = append(results, p)
+		}
+
+		groups := make(map[int]*models.TournamentGroup)
+		for _, gp := range results {
+			tmp := strings.Split(gp.PosColor, ".")
+			gid := gp.GroupId
+			if groups[gid] == nil {
+				gp.Pos = 1
+				gp.PosColor = tmp[gp.Pos-1]
+				gr := new(models.TournamentGroup)
+				gr.Id = gid
+				gr.Name = gp.GroupName
+				gr.Abbreviation = gp.GroupAbbreviation
+				gr.Players = append(gr.Players, *gp)
+				groups[gid] = gr
+			} else {
+				gr := groups[gid]
+				gp.Pos = len(gr.Players) + 1
+				gp.PosColor = tmp[gp.Pos-1]
+				gr.Players = append(gr.Players, *gp)
+			}
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+	*/
 
 	return groups, nil
 }
