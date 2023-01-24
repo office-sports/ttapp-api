@@ -21,3 +21,9 @@ type Player struct {
 	NotLossPercentage float32  `json:"not_loss_percentage"`
 	EloHistory        [][2]int `json:"elo_history"`
 }
+
+type PlayerCache struct {
+	Elo         int `json:"elo"`
+	OldElo      int `json:"old_elo"`
+	GamesPlayed int `json:"games_played"`
+}

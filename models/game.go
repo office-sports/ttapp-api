@@ -147,3 +147,72 @@ type GameSetResults struct {
 	S7hp   *int `json:"s7hp"`
 	S7ap   *int `json:"s7ap"`
 }
+
+func (gsr GameSetResults) GetFullScore() (int, int) {
+	var hs, as int
+	if gsr.S1hp != nil && gsr.S1ap != nil {
+		if *gsr.S1hp > *gsr.S1ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S2hp != nil && gsr.S2ap != nil {
+		if *gsr.S2hp > *gsr.S2ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S3hp != nil && gsr.S3ap != nil {
+		if *gsr.S3hp > *gsr.S3ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S4hp != nil && gsr.S4ap != nil {
+		if *gsr.S4hp > *gsr.S4ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S5hp != nil && gsr.S5ap != nil {
+		if *gsr.S5hp > *gsr.S5ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S6hp != nil && gsr.S6ap != nil {
+		if *gsr.S6hp > *gsr.S6ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+	if gsr.S7hp != nil && gsr.S7ap != nil {
+		if *gsr.S7hp > *gsr.S7ap {
+			hs++
+		} else {
+			as++
+		}
+	}
+
+	return hs, as
+}
+
+type EloCache struct {
+	Id             int  `json:"id"`
+	HomePlayerId   int  `json:"home_player_id"`
+	AwayPlayerId   int  `json:"away_player_id"`
+	WinnerId       int  `json:"winner_id"`
+	HomeScoreTotal int  `json:"home_score_total"`
+	AwayScoreTotal int  `json:"away_score_total"`
+	HomeElo        *int `json:"home_elo"`
+	AwayElo        *int `json:"away_elo"`
+	NewHomeElo     *int `json:"new_home_elo"`
+	NewAwayElo     *int `json:"new_away_elo"`
+	GamesPlayed    int  `json:"games_played"`
+}

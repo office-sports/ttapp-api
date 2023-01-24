@@ -40,6 +40,7 @@ func GetPlayerEloHistoryQuery() string {
 			where p.id = ?
 			and g.is_finished = 1
 			and t.is_official = 1
+			and g.is_abandoned = 0
 			order by g.date_played asc, g.id asc`
 }
 

@@ -42,6 +42,7 @@ func main() {
 
 	router.HandleFunc("/games/save", handlers.SaveGame).Methods("POST")
 	router.HandleFunc("/games/modes", handlers.GetGameModes).Methods("GET")
+	router.HandleFunc("/games/elocache", handlers.GetEloCache).Methods("GET")
 	router.HandleFunc("/games/{id}/timeline", handlers.GetGameTimeline).Methods("GET")
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
 

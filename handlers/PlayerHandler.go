@@ -30,7 +30,7 @@ func GetPlayerById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid player id")
 		http.Error(writer, "Invalid player id", http.StatusBadRequest)
 		return
 	}
@@ -47,7 +47,7 @@ func GetPlayerResultsById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid player id")
 		http.Error(writer, "Invalid player id", http.StatusBadRequest)
 		return
 	}
@@ -64,7 +64,7 @@ func GetPlayerScheduleById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid player id")
 		http.Error(writer, "Invalid player id", http.StatusBadRequest)
 		return
 	}

@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/office-sports/ttapp-api/data"
 	"github.com/office-sports/ttapp-api/models"
@@ -27,6 +26,21 @@ func GetGameModes(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(md)
 }
 
+func GetEloCache(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	md, err := data.GetEloCache()
+	if err == sql.ErrNoRows {
+		json.NewEncoder(writer).Encode(new(models.EloCache))
+		return
+	} else if err != nil {
+		log.Println("Unable to get elo cache", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(writer).Encode(md)
+}
+
 func GetGameTimeline(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	tid, _ := strconv.Atoi(params["id"])
@@ -43,7 +57,7 @@ func GetGameById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid game id")
 		http.Error(writer, "Invalid game id", http.StatusBadRequest)
 		return
 	}
@@ -67,5 +81,5 @@ func SaveGame(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	fmt.Println(gr)
+	data.Save(gr)
 }
