@@ -86,7 +86,7 @@ func GetPlayerGamesById(pid int, finished int) ([]*models.GameResult, error) {
 	for rows.Next() {
 		g := new(models.GameResult)
 		ss := new(models.GameResultSetScores)
-		err := rows.Scan(&g.MatchId, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
+		err := rows.Scan(&g.MatchId, &g.MaxSets, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
 			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
 			&g.AwayScoreTotal, &g.IsWalkover, &g.HomeElo, &g.AwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 			&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,

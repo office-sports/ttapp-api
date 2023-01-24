@@ -16,6 +16,7 @@ type Game struct {
 
 type GameResult struct {
 	MatchId        int        `json:"match_id"`
+	MaxSets        int        `json:"max_sets"`
 	GroupName      string     `json:"group_name"`
 	TournamentId   int        `json:"tournament_id"`
 	OfficeId       int        `json:"office_id"`
@@ -127,4 +128,22 @@ type GameEvent struct {
 	Timestamp                int `json:"timestamp"`
 	RallySeconds             int `json:"rally_seconds"`
 	SetNumber                int `json:"set_number"`
+}
+
+type GameSetResults struct {
+	GameId int  `json:"game_id"`
+	S1hp   *int `json:"s1hp"`
+	S1ap   *int `json:"s1ap"`
+	S2hp   *int `json:"s2hp"`
+	S2ap   *int `json:"s2ap"`
+	S3hp   *int `json:"s3hp"`
+	S3ap   *int `json:"s3ap"`
+	S4hp   *int `json:"s4hp"`
+	S4ap   *int `json:"s4ap"`
+	S5hp   *int `json:"s5hp"`
+	S5ap   *int `json:"s5ap"`
+	S6hp   *int `json:"s6hp"`
+	S6ap   *int `json:"s6ap"`
+	S7hp   *int `json:"s7hp"`
+	S7ap   *int `json:"s7ap"`
 }

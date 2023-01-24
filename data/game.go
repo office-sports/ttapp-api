@@ -156,3 +156,33 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 
 	return timeline, nil
 }
+
+func GetGameById(gid int) (*models.GameResult, error) {
+	g := new(models.GameResult)
+	ss := new(models.GameResultSetScores)
+	err := models.DB.QueryRow(queries.GetBasePlayerScoresQuery()+
+		` where g.id = ? order by g.date_played desc`, gid).Scan(
+		&g.MatchId, &g.MaxSets, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
+		&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
+		&g.AwayScoreTotal, &g.IsWalkover, &g.HomeElo, &g.AwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
+		&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
+		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	SetGameResultSetScores(g, 1, ss.S1hp, ss.S1ap)
+	SetGameResultSetScores(g, 2, ss.S2hp, ss.S2ap)
+	SetGameResultSetScores(g, 3, ss.S3hp, ss.S3ap)
+	SetGameResultSetScores(g, 4, ss.S4hp, ss.S4ap)
+	SetGameResultSetScores(g, 5, ss.S5hp, ss.S5ap)
+	SetGameResultSetScores(g, 6, ss.S6hp, ss.S6ap)
+	SetGameResultSetScores(g, 7, ss.S7hp, ss.S7ap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}

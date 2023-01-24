@@ -214,6 +214,28 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	return groups, nil
 }
 
+func GetTournamentById(id int) (*models.Tournament, error) {
+	t := new(models.Tournament)
+	err := models.DB.QueryRow(`
+			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
+			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
+			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			from tournament t
+			left join game g on g.tournament_id = t.id
+			where t.is_official = 1 and t.id = ?
+			group by t.id, t.start_time
+			order by t.start_time desc`, id).Scan(
+		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
+		&t.Participants, &t.Scheduled, &t.Finished)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
 func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 
 	rows, err := models.DB.Query(queries.GetTournamentGroupsQuery(), id)
@@ -269,48 +291,6 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 
 		groups = append(groups, l)
 	}
-
-	/*
-		results := make([]*models.GroupStandingsPlayer, 0)
-		for rows.Next() {
-			p := new(models.GroupStandingsPlayer)
-			//ss := new(models.GameResultSetScores)
-			err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
-				&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
-				&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
-			if err != nil {
-				return nil, err
-			}
-
-			results = append(results, p)
-		}
-
-		groups := make(map[int]*models.TournamentGroup)
-		for _, gp := range results {
-			tmp := strings.Split(gp.PosColor, ".")
-			gid := gp.GroupId
-			if groups[gid] == nil {
-				gp.Pos = 1
-				gp.PosColor = tmp[gp.Pos-1]
-				gr := new(models.TournamentGroup)
-				gr.Id = gid
-				gr.Name = gp.GroupName
-				gr.Abbreviation = gp.GroupAbbreviation
-				gr.Players = append(gr.Players, *gp)
-				groups[gid] = gr
-			} else {
-				gr := groups[gid]
-				gp.Pos = len(gr.Players) + 1
-				gp.PosColor = tmp[gp.Pos-1]
-				gr.Players = append(gr.Players, *gp)
-			}
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-	*/
 
 	return groups, nil
 }

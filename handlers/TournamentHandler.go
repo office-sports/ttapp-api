@@ -100,3 +100,20 @@ func GetTournamentLadders(writer http.ResponseWriter, request *http.Request) {
 	}
 	json.NewEncoder(writer).Encode(standings)
 }
+
+func GetTournamentById(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+	standings, err := data.GetTournamentById(id)
+	if err != nil {
+		log.Println("Unable to get tournament", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(writer).Encode(standings)
+}
