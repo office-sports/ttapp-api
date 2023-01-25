@@ -40,11 +40,19 @@ func GetPlayerById(id int) (*models.Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.NotWinPercentage = 100 - p.WinPercentage
-	p.DrawPercentage = float32(p.Draws) / float32(p.GamesPlayed) * 100
-	p.NotDrawPercentage = 100 - p.DrawPercentage
-	p.LossPercentage = float32(p.Losses) / float32(p.GamesPlayed) * 100
-	p.NotLossPercentage = 100 - p.LossPercentage
+	if p.GamesPlayed == 0 {
+		p.NotWinPercentage = 0
+		p.DrawPercentage = 0
+		p.NotDrawPercentage = 0
+		p.LossPercentage = 0
+		p.NotLossPercentage = 0
+	} else {
+		p.NotWinPercentage = 100 - p.WinPercentage
+		p.DrawPercentage = float32(p.Draws) / float32(p.GamesPlayed) * 100
+		p.NotDrawPercentage = 100 - p.DrawPercentage
+		p.LossPercentage = float32(p.Losses) / float32(p.GamesPlayed) * 100
+		p.NotLossPercentage = 100 - p.LossPercentage
+	}
 
 	rows, err := models.DB.Query(queries.GetPlayerEloHistoryQuery(), p.ID)
 	if err != nil {
