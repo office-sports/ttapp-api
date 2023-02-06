@@ -44,10 +44,16 @@ func GetTournaments() ([]*models.Tournament, error) {
 
 func GetLiveTournament() ([]*models.Tournament, error) {
 	rows, err := models.DB.Query(`
-			select t.id as tournamentId, t.name as tournamentName, t.is_finished as isFinished, 
-			       t.is_playoffs as isPlayoffs, t.office_id as officeId
-                from tournament t
-                where t.is_finished = 0 and t.is_official = 1 and t.is_playoffs = 1`)
+select t.id, t.name, t.is_finished, t.is_playoffs, 
+       t.start_time, 
+	   IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
+       t.office_id,
+			count(distinct (g.home_player_id)), count(g.id),
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			from tournament t
+			left join game g on g.tournament_id = t.id
+			where t.is_official = 1 and t.is_finished = 0
+			and g.office_id = 1`)
 
 	if err != nil {
 		return nil, err
@@ -57,7 +63,8 @@ func GetLiveTournament() ([]*models.Tournament, error) {
 	tournaments := make([]*models.Tournament, 0)
 	for rows.Next() {
 		t := new(models.Tournament)
-		err := rows.Scan(&t.Id, &t.Name, &t.IsFinished, &t.IsPlayoffs, &t.OfficeId)
+		err := rows.Scan(&t.Id, &t.Name, &t.IsFinished, &t.IsPlayoffs,
+			&t.StartTime, &t.Phase, &t.OfficeId, &t.Participants, &t.Scheduled, &t.Finished)
 		if err != nil {
 			return nil, err
 		}
