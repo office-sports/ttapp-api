@@ -30,12 +30,13 @@ type GameResult struct {
 	HomeScoreTotal int        `json:"home_score_total"`
 	AwayScoreTotal int        `json:"away_score_total"`
 	IsWalkover     int        `json:"is_walkover"`
-	HomeElo        int        `json:"home_elo"`
-	AwayElo        int        `json:"away_elo"`
-	NewHomeElo     int        `json:"new_home_elo"`
-	NewAwayElo     int        `json:"new_away_elo"`
-	HomeEloDiff    int        `json:"home_elo_diff"`
-	AwayEloDiff    int        `json:"away_elo_diff"`
+	IsFinished     int        `json:"is_finished"`
+	HomeElo        *int       `json:"home_elo"`
+	AwayElo        *int       `json:"away_elo"`
+	NewHomeElo     *int       `json:"new_home_elo"`
+	NewAwayElo     *int       `json:"new_away_elo"`
+	HomeEloDiff    *int       `json:"home_elo_diff"`
+	AwayEloDiff    *int       `json:"away_elo_diff"`
 	HasPoints      *int       `json:"has_points"`
 	SetScores      []SetScore `json:"scores"`
 }

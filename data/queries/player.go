@@ -9,7 +9,8 @@ func GetPlayersDataQuery() string {
 				sum(if(g.winner_id = 0, 1, 0)) as draws, 
 				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
 				p.office_id as officeId,
-				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage
+				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage,
+				p.active
 			from player p
 			left join game g on p.id in (g.home_player_id, g.away_player_id) and g.is_finished = 1
 			left join tournament t on t.id = g.tournament_id and t.is_official = 1
@@ -61,10 +62,13 @@ func GetBasePlayerScoresQuery() string {
 		g.home_score as homeScoreTotal, 
 		g.away_score as awayScoreTotal,
 		g.is_walkover as isWalkover,
-		p1.tournament_elo as homeElo, 
-		p2.tournament_elo as awayElo,
-		p1.tournament_elo - p2.tournament_elo as homeEloDiff,
-		p2.tournament_elo - p1.tournament_elo as awayEloDiff,
+		g.is_finished as isFinished,
+		g.old_home_elo as homeElo, 
+		g.old_away_elo as awayElo,
+		g.new_home_elo as newHomeElo, 
+		g.new_away_elo as newAwayElo,
+		g.new_home_elo - g.old_home_elo as homeEloDiff,
+		g.new_away_elo - g.old_away_elo as awayEloDiff,
 		s1.home_points as s1hp, s1.away_points s1ap,
 		s2.home_points as s2hp, s2.away_points s2ap,
 		s3.home_points as s3hp, s3.away_points s3ap,
