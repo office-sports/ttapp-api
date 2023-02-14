@@ -39,6 +39,7 @@ func main() {
 	router.HandleFunc("/tournaments/{id}/results/{num}", handlers.GetTournamentResults).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/standings", handlers.GetTournamentStandingsById).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/ladders", handlers.GetTournamentLadders).Methods("GET")
+	router.HandleFunc("/tournaments/{id}/leaders", handlers.GetTournamentLeaders).Methods("GET")
 
 	router.HandleFunc("/games/save", handlers.SaveGame).Methods("POST")
 	router.HandleFunc("/games/changeserver", handlers.ChangeServer).Methods("POST")

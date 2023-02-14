@@ -11,9 +11,15 @@ func GetTournaments() ([]*models.Tournament, error) {
 			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
 			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
 			left join game g on g.tournament_id = t.id
+			left join (
+			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
+                from scores s
+                join game g on s.game_id = g.id
+                group by g.tournament_id
+            ) s on s.tid = t.id			
 			where t.is_official = 1
 			group by t.id, t.start_time
 			order by t.start_time desc`)
@@ -27,7 +33,7 @@ func GetTournaments() ([]*models.Tournament, error) {
 	for rows.Next() {
 		t := new(models.Tournament)
 		err := rows.Scan(&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
-			&t.Participants, &t.Scheduled, &t.Finished)
+			&t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
 		if err != nil {
 			return nil, err
 		}
@@ -49,9 +55,15 @@ select t.id, t.name, t.is_finished, t.is_playoffs,
 	   IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
        t.office_id,
 			count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
 			left join game g on g.tournament_id = t.id
+			left join (
+			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
+                from scores s
+                join game g on s.game_id = g.id
+                group by g.tournament_id
+            ) s on s.tid = t.id				
 			where t.is_official = 1 and t.is_finished = 0
 			and g.office_id = 1`)
 
@@ -64,7 +76,7 @@ select t.id, t.name, t.is_finished, t.is_playoffs,
 	for rows.Next() {
 		t := new(models.Tournament)
 		err := rows.Scan(&t.Id, &t.Name, &t.IsFinished, &t.IsPlayoffs,
-			&t.StartTime, &t.Phase, &t.OfficeId, &t.Participants, &t.Scheduled, &t.Finished)
+			&t.StartTime, &t.Phase, &t.OfficeId, &t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
 		if err != nil {
 			return nil, err
 		}
@@ -166,6 +178,30 @@ func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	return results, nil
+}
+
+func GetTournamentLeaders(id int) ([]*models.GroupStandingsPlayer, error) {
+	rows, err := models.DB.Query(queries.GetTournamentStandingsQuery(), id, id, id, id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]*models.GroupStandingsPlayer, 0)
+	for rows.Next() {
+		p := new(models.GroupStandingsPlayer)
+		err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
+			&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
+			&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, p)
 	}
 
 	return results, nil

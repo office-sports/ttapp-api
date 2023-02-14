@@ -11,6 +11,8 @@ type Tournament struct {
 	Participants int    `json:"participants"`
 	Scheduled    int    `json:"scheduled"`
 	Finished     int    `json:"finished"`
+	Sets         int    `json:"sets"`
+	Points       int    `json:"points"`
 }
 
 type TournamentGroup struct {
@@ -61,4 +63,14 @@ type LadderGroup struct {
 	IsWalkover            int    `json:"is_walkover"`
 	HomePlayerDisplayName string `json:"home_player_display_name"`
 	AwayPlayerDisplayName string `json:"away_player_display_name"`
+}
+
+type LeaderGroup struct {
+	Name      string   `json:"name"`
+	LeaderSet []Leader `json:"leader_set"`
+}
+
+type Leader struct {
+	PlayerId int `json:"player_id"`
+	Value    int `json:"value"`
 }
