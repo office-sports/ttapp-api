@@ -45,7 +45,7 @@ func GetPlayerEloHistoryQuery() string {
 			order by g.date_played asc, g.id asc`
 }
 
-func GetBasePlayerScoresQuery() string {
+func GetGameWithScoresQuery() string {
 	return `select 
     	g.id, 
     	gm.max_sets,
@@ -63,8 +63,8 @@ func GetBasePlayerScoresQuery() string {
 		g.away_score as awayScoreTotal,
 		g.is_walkover as isWalkover,
 		g.is_finished as isFinished,
-		g.old_home_elo as homeElo, 
-		g.old_away_elo as awayElo,
+		COALESCE(g.old_home_elo, p1.tournament_elo) as homeElo, 
+		COALESCE(g.old_away_elo, p2.tournament_elo) as awayElo,
 		g.new_home_elo as newHomeElo, 
 		g.new_away_elo as newAwayElo,
 		g.new_home_elo - g.old_home_elo as homeEloDiff,
@@ -75,17 +75,24 @@ func GetBasePlayerScoresQuery() string {
 		s4.home_points as s4hp, s4.away_points s4ap,
 		s5.home_points as s5hp, s5.away_points s5ap,
 		s6.home_points as s5hp, s6.away_points s6ap,
-		s7.home_points as s5hp, s7.away_points s7ap
+		s7.home_points as s5hp, s7.away_points s7ap,
+		coalesce(sum(pp.is_home_point), 0) as currentHomePoints, 
+		coalesce(sum(pp.is_away_point), 0) as currentAwayPoints,
+		g.current_set as currentSet,
+		s.id as currentSetId
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
 		join player p1 on p1.id = g.home_player_id
 		join player p2 on p2.id = g.away_player_id
 		join tournament_group tg on tg.id = g.tournament_group_id
+		left join scores s on s.set_number = g.current_set and s.game_id = g.id
 		left join scores s1 on s1.game_id = g.id and s1.set_number = 1
 		left join scores s2 on s2.game_id = g.id and s2.set_number = 2
 		left join scores s3 on s3.game_id = g.id and s3.set_number = 3
 		left join scores s4 on s4.game_id = g.id and s4.set_number = 4
 		left join scores s5 on s5.game_id = g.id and s5.set_number = 5
 		left join scores s6 on s6.game_id = g.id and s6.set_number = 6
-		left join scores s7 on s7.game_id = g.id and s7.set_number = 7`
+		left join scores s7 on s7.game_id = g.id and s7.set_number = 7
+		left join scores ss on ss.game_id = g.id and g.current_set = ss.set_number
+		left join points pp on pp.score_id = ss.id`
 }

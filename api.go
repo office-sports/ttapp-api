@@ -41,10 +41,15 @@ func main() {
 	router.HandleFunc("/tournaments/{id}/ladders", handlers.GetTournamentLadders).Methods("GET")
 
 	router.HandleFunc("/games/save", handlers.SaveGame).Methods("POST")
+	router.HandleFunc("/games/changeserver", handlers.ChangeServer).Methods("POST")
 	router.HandleFunc("/games/modes", handlers.GetGameModes).Methods("GET")
 	router.HandleFunc("/games/elocache", handlers.GetEloCache).Methods("GET")
 	router.HandleFunc("/games/{id}/timeline", handlers.GetGameTimeline).Methods("GET")
+	router.HandleFunc("/games/{id}/serve", handlers.GetGameServe).Methods("GET")
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
+
+	router.HandleFunc("/points/add", handlers.AddPoint).Methods("POST")
+	router.HandleFunc("/points/del", handlers.DelPoint).Methods("POST")
 
 	log.Printf("Listening on port %d", config.APIConfig.Port)
 	log.Println(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.APIConfig.Port), router))

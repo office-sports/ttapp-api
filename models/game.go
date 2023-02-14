@@ -15,30 +15,34 @@ type Game struct {
 }
 
 type GameResult struct {
-	MatchId        int        `json:"match_id"`
-	MaxSets        int        `json:"max_sets"`
-	GroupName      string     `json:"group_name"`
-	TournamentId   int        `json:"tournament_id"`
-	OfficeId       int        `json:"office_id"`
-	DateOfMatch    string     `json:"date_of_match"`
-	DatePlayed     *string    `json:"date_played"`
-	HomePlayerId   int        `json:"home_player_id"`
-	AwayPlayerId   int        `json:"away_player_id"`
-	HomePlayerName string     `json:"home_player_name"`
-	AwayPlayerName string     `json:"away_player_name"`
-	WinnerId       int        `json:"winner_id"`
-	HomeScoreTotal int        `json:"home_score_total"`
-	AwayScoreTotal int        `json:"away_score_total"`
-	IsWalkover     int        `json:"is_walkover"`
-	IsFinished     int        `json:"is_finished"`
-	HomeElo        *int       `json:"home_elo"`
-	AwayElo        *int       `json:"away_elo"`
-	NewHomeElo     *int       `json:"new_home_elo"`
-	NewAwayElo     *int       `json:"new_away_elo"`
-	HomeEloDiff    *int       `json:"home_elo_diff"`
-	AwayEloDiff    *int       `json:"away_elo_diff"`
-	HasPoints      *int       `json:"has_points"`
-	SetScores      []SetScore `json:"scores"`
+	MatchId           int        `json:"match_id"`
+	MaxSets           int        `json:"max_sets"`
+	GroupName         string     `json:"group_name"`
+	TournamentId      int        `json:"tournament_id"`
+	OfficeId          int        `json:"office_id"`
+	DateOfMatch       string     `json:"date_of_match"`
+	DatePlayed        *string    `json:"date_played"`
+	HomePlayerId      int        `json:"home_player_id"`
+	AwayPlayerId      int        `json:"away_player_id"`
+	HomePlayerName    string     `json:"home_player_name"`
+	AwayPlayerName    string     `json:"away_player_name"`
+	WinnerId          int        `json:"winner_id"`
+	HomeScoreTotal    int        `json:"home_score_total"`
+	AwayScoreTotal    int        `json:"away_score_total"`
+	IsWalkover        int        `json:"is_walkover"`
+	IsFinished        int        `json:"is_finished"`
+	HomeElo           *int       `json:"home_elo"`
+	AwayElo           *int       `json:"away_elo"`
+	NewHomeElo        *int       `json:"new_home_elo"`
+	NewAwayElo        *int       `json:"new_away_elo"`
+	HomeEloDiff       *int       `json:"home_elo_diff"`
+	AwayEloDiff       *int       `json:"away_elo_diff"`
+	HasPoints         *int       `json:"has_points"`
+	CurrentHomePoints *int       `json:"current_home_points"`
+	CurrentAwayPoints *int       `json:"current_away_points"`
+	CurrentSet        int        `json:"current_set"`
+	CurrentSetId      *int       `json:"current_set_id"`
+	SetScores         []SetScore `json:"scores"`
 }
 
 type SetScore struct {
@@ -204,6 +208,11 @@ func (gsr GameSetResults) GetFullScore() (int, int) {
 	return hs, as
 }
 
+type ChangeServerPayload struct {
+	GameId   int `json:"game_id"`
+	ServerId int `json:"server_id"`
+}
+
 type EloCache struct {
 	Id             int  `json:"id"`
 	HomePlayerId   int  `json:"home_player_id"`
@@ -216,4 +225,15 @@ type EloCache struct {
 	NewHomeElo     *int `json:"new_home_elo"`
 	NewAwayElo     *int `json:"new_away_elo"`
 	GamesPlayed    int  `json:"games_played"`
+}
+
+type ServeData struct {
+	GameId                 int `json:"game_id"`
+	SetNumber              int `json:"set_number"`
+	FirstGameServer        int `json:"first_game_server"`
+	SecondGameServer       int `json:"second_game_server"`
+	CurrentSetFirstServer  int `json:"current_set_first_server"`
+	CurrentSetSecondServer int `json:"current_set_second_server"`
+	CurrentServerId        int `json:"current_server_id"`
+	NumServes              int `json:"num_serves"`
 }

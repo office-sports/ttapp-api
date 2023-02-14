@@ -53,6 +53,18 @@ func GetGameTimeline(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(timeline)
 }
 
+func GetGameServe(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	tid, _ := strconv.Atoi(params["id"])
+	serve, err := data.GetGameServe(tid)
+	if err != nil {
+		log.Println("Unable to get game serve data", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(writer).Encode(serve)
+}
+
 func GetGameById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
@@ -82,4 +94,26 @@ func SaveGame(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	data.Save(gr)
+}
+
+func ChangeServer(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	var p models.ChangeServerPayload
+	err := json.NewDecoder(request.Body).Decode(&p)
+
+	if err != nil {
+		log.Println("Unable to get game id", err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	data.UpdateServer(p)
+
+	serve, err := data.GetGameServe(p.GameId)
+	if err != nil {
+		log.Println("Unable to get game serve data", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(writer).Encode(serve)
 }

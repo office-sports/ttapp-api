@@ -7,6 +7,34 @@ func GetGameModesQuery() string {
 			ORDER BY t.id ASC`
 }
 
+func GetGameScoresQuery() string {
+	return `SELECT id, game_id, set_number, home_points, away_points from scores s `
+}
+
+func GetGameServeDataQuery() string {
+	return `select g.id, if(g.current_set = 0, 1, g.current_set) as setNumber,
+                       @firstServer:=if(g.server_id = g.home_player_id, g.home_player_id, g.away_player_id) as firstGameServer,
+                       @otherServer:=if(g.server_id = g.home_player_id, g.away_player_id, g.home_player_id) as secondGameServer,
+                       @css:=if (mod(g.current_set + 1, 2) = 0, @firstServer, @otherServer) as currentSetFirstServer,
+                       @oss:=if (mod(g.current_set + 1, 2) = 0, @otherServer, @firstServer) as currentSetSecondServer,
+                       if (if (count(p.id) >= 20, 1, 0) = 1,
+                           if(
+                               mod(count(p.id), 2) = 0,
+                               if (mod(g.current_set + 1, 2) = 0, @firstServer, @otherServer),
+                               if (mod(g.current_set + 1, 2) = 0, @otherServer, @firstServer)
+                               ),
+                           if(mod((floor(count(p.id) / 2)), 2) = 0,
+                               if (mod(g.current_set + 1, 2) = 0, @firstServer, @otherServer),
+                               if (mod(g.current_set + 1, 2) = 0, @otherServer, @firstServer)
+                               )
+                           ) as currentServerId,
+                       if (if(count(p.id) >= 20, 1, 0) = 1, 1, mod(count(p.id)+1, 2) + 1) as numServes
+                from game g
+                left join scores s on g.id = s.game_id and s.set_number = g.current_set
+                left join points p on s.id = p.score_id
+                where g.id = ?`
+}
+
 func GetGameTimelineSummaryQuery() string {
 	return `select
     g.server_id as serverId,

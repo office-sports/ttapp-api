@@ -158,16 +158,29 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 	return timeline, nil
 }
 
+func GetGameServe(gid int) (*models.ServeData, error) {
+	g := new(models.ServeData)
+	err := models.DB.QueryRow(queries.GetGameServeDataQuery(), gid).Scan(
+		&g.GameId, &g.SetNumber, &g.FirstGameServer, &g.SecondGameServer,
+		&g.CurrentSetFirstServer, &g.CurrentSetSecondServer, &g.CurrentServerId, &g.NumServes)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 func GetGameById(gid int) (*models.GameResult, error) {
 	g := new(models.GameResult)
 	ss := new(models.GameResultSetScores)
-	err := models.DB.QueryRow(queries.GetBasePlayerScoresQuery()+
+	err := models.DB.QueryRow(queries.GetGameWithScoresQuery()+
 		` where g.id = ? order by g.date_played desc`, gid).Scan(
 		&g.MatchId, &g.MaxSets, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
 		&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
 		&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 		&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
-		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId)
 
 	if err != nil {
 		return nil, err
@@ -199,36 +212,34 @@ func deleteGameScores(id int) {
 	}
 }
 
-func insertSetScore(gid int, sn int, hp *int, ap *int) {
+func InsertSetScore(gid int, sn int, hp *int, ap *int) (int64, error) {
 	s := `INSERT INTO scores (game_id, set_number, home_points, away_points) VALUES (?, ?, ?, ?)`
-	_, err := RunTransaction(s, gid, sn, hp, ap)
+	lid, err := RunTransaction(s, gid, sn, hp, ap)
 
-	if err != nil {
-		log.Println("Error saving game scores, game id: ", gid, err)
-	}
+	return lid, err
 }
 
 func saveGameScores(gr models.GameSetResults) {
 	if gr.S1hp != nil && gr.S1ap != nil {
-		insertSetScore(gr.GameId, 1, gr.S1hp, gr.S1ap)
+		_, _ = InsertSetScore(gr.GameId, 1, gr.S1hp, gr.S1ap)
 	}
 	if gr.S2hp != nil && gr.S2ap != nil {
-		insertSetScore(gr.GameId, 2, gr.S2hp, gr.S2ap)
+		_, _ = InsertSetScore(gr.GameId, 2, gr.S2hp, gr.S2ap)
 	}
 	if gr.S3hp != nil && gr.S3ap != nil {
-		insertSetScore(gr.GameId, 3, gr.S3hp, gr.S3ap)
+		_, _ = InsertSetScore(gr.GameId, 3, gr.S3hp, gr.S3ap)
 	}
 	if gr.S4hp != nil && gr.S4ap != nil {
-		insertSetScore(gr.GameId, 4, gr.S4hp, gr.S4ap)
+		_, _ = InsertSetScore(gr.GameId, 4, gr.S4hp, gr.S4ap)
 	}
 	if gr.S5hp != nil && gr.S5ap != nil {
-		insertSetScore(gr.GameId, 5, gr.S5hp, gr.S5ap)
+		_, _ = InsertSetScore(gr.GameId, 5, gr.S5hp, gr.S5ap)
 	}
 	if gr.S6hp != nil && gr.S6ap != nil {
-		insertSetScore(gr.GameId, 6, gr.S6hp, gr.S6ap)
+		_, _ = InsertSetScore(gr.GameId, 6, gr.S6hp, gr.S6ap)
 	}
 	if gr.S7hp != nil && gr.S7ap != nil {
-		insertSetScore(gr.GameId, 7, gr.S7hp, gr.S7ap)
+		_, _ = InsertSetScore(gr.GameId, 7, gr.S7hp, gr.S7ap)
 	}
 }
 
@@ -260,6 +271,26 @@ func Save(gr models.GameSetResults) {
 
 	// recalculate elo
 	calculateElo(gr.GameId)
+}
+
+func UpdateServer(gr models.ChangeServerPayload) {
+	s := `UPDATE game SET server_id = ? WHERE id = ?`
+
+	_, err := RunTransaction(s, gr.ServerId, gr.GameId)
+
+	if err != nil {
+		log.Println("Error updating game server, game id: ", gr.GameId, err)
+	}
+}
+
+func UpdateGameCurrentSet(gid int, sid int) {
+	s := `UPDATE game SET current_set = ? WHERE id = ?`
+
+	_, err := RunTransaction(s, sid, gid)
+
+	if err != nil {
+		log.Println("Error updating game current set, game id: ", gid, err)
+	}
 }
 
 func GetEloLastCache() ([]*models.EloCache, error) {

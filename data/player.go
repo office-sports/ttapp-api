@@ -80,9 +80,10 @@ func GetPlayerById(id int) (*models.Player, error) {
 }
 
 func GetPlayerGamesById(pid int, finished int) ([]*models.GameResult, error) {
-	rows, err := models.DB.Query(queries.GetBasePlayerScoresQuery()+
+	rows, err := models.DB.Query(queries.GetGameWithScoresQuery()+
 		` where (g.home_player_id = ? OR g.away_player_id = ?)
 		and g.is_finished = ? and tg.is_official = 1 and g.is_abandoned = 0
+		group by g.id
 		order by g.date_played desc`, pid, pid, finished)
 
 	if err != nil {
@@ -98,7 +99,7 @@ func GetPlayerGamesById(pid int, finished int) ([]*models.GameResult, error) {
 			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
 			&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 			&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
-			&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+			&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId)
 		if err != nil {
 			return nil, err
 		}
