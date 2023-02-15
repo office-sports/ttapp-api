@@ -103,6 +103,9 @@ type SetSummary struct {
 
 type GameTimelineGameSummary struct {
 	GameStartingServerId    int    `json:"game_starting_server_id"`
+	WinnerId                int    `json:"winner_id"`
+	HomePlayerId            int    `json:"home_player_id"`
+	AwayPlayerId            int    `json:"away_player_id"`
 	HomeName                string `json:"home_name"`
 	AwayName                string `json:"away_name"`
 	GroupName               string `json:"group_name"`

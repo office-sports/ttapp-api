@@ -45,7 +45,7 @@ func main() {
 	router.HandleFunc("/games/changeserver", handlers.ChangeServer).Methods("POST")
 	router.HandleFunc("/games/modes", handlers.GetGameModes).Methods("GET")
 	router.HandleFunc("/games/elocache", handlers.GetEloCache).Methods("GET")
-	router.HandleFunc("/games/{id}/timeline", handlers.GetGameTimeline).Methods("GET")
+	router.HandleFunc("/games/{id}/details", handlers.GetGameTimeline).Methods("GET")
 	router.HandleFunc("/games/{id}/serve", handlers.GetGameServe).Methods("GET")
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
 

@@ -79,7 +79,8 @@ func GetGameWithScoresQuery() string {
 		coalesce(sum(pp.is_home_point), 0) as currentHomePoints, 
 		coalesce(sum(pp.is_away_point), 0) as currentAwayPoints,
 		g.current_set as currentSet,
-		s.id as currentSetId
+		s.id as currentSetId,
+		if(count(pp.id) > 0, 1, 0) as hasPoints
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
 		join player p1 on p1.id = g.home_player_id
@@ -93,6 +94,6 @@ func GetGameWithScoresQuery() string {
 		left join scores s5 on s5.game_id = g.id and s5.set_number = 5
 		left join scores s6 on s6.game_id = g.id and s6.set_number = 6
 		left join scores s7 on s7.game_id = g.id and s7.set_number = 7
-		left join scores ss on ss.game_id = g.id and g.current_set = ss.set_number
+		left join scores ss on ss.game_id = g.id
 		left join points pp on pp.score_id = ss.id`
 }
