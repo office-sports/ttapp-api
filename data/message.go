@@ -22,9 +22,9 @@ func SendMessage(result *models.GameResult) {
 	setScores = strings.TrimSuffix(setScores, ", ") + ")"
 
 	txt := "> *" + result.GroupName + " Group* match finished\n" +
-		"> *" + result.HomePlayerName + "* vs *" + result.AwayPlayerName +
-		"* " + strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) +
-		setScores + "\n"
+		"> *" + result.HomePlayerName + "* " +
+		strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) + " *" + result.AwayPlayerName +
+		"* " + setScores + "\n"
 
 	payload := map[string]string{
 		"text":        txt,
