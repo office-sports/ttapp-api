@@ -95,8 +95,8 @@ type SetSummary struct {
 	AwayServePoints     int    `json:"away_serve_points"`
 	HomeStreak          int    `json:"home_streak"`
 	AwayStreak          int    `json:"away_streak"`
-	DurationMinutes     string `json:"duration_minutes"`
-	DurationSeconds     string `json:"duration_seconds"`
+	StartTimestamp      int    `json:"start_timestamp"`
+	EndTimestamp        int    `json:"end_timestamp"`
 	HomeServePointsPerc string `json:"home_serve_points_perc"`
 	AwayServePointsPerc string `json:"away_serve_points_perc"`
 }

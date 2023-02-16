@@ -84,6 +84,7 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 			set.SetSummary = *setSummary
 
 			sets[ge.SetNumber] = set
+			set.SetSummary.StartTimestamp = ge.Timestamp
 		} else {
 			set := sets[ge.SetNumber]
 			set.Events = append(set.Events, ge)
@@ -107,21 +108,6 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 			gameSecondServerId = ge.HomePlayerId
 		}
 
-		//serverId := summary.GameStartingServerId
-		//var otherServerId int
-		//if serverId == ge.HomePlayerId {
-		//	otherServerId = ge.AwayPlayerId
-		//	sets[ge.SetNumber].SetSummary.HomeServes++
-		//	//if ge.IsHomePoint == 1 {
-		//	//	summary.HomeOwnServePointsTotal++
-		//	//}
-		//} else {
-		//	otherServerId = ge.HomePlayerId
-		//	sets[ge.SetNumber].SetSummary.AwayServes++
-		//	//if ge.IsAwayPoint == 1 {
-		//	//	summary.AwayOwnServePointsTotal++
-		//	//}
-		//}
 		servers := [2]int{gameFirstServerId, gameSecondServerId}
 		pointsScored := homePointsScored + awayPointsScored
 
@@ -137,7 +123,6 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 
 		ge.CurrentSetStartingServer = servers[(ge.SetNumber+1)%2]
 		ge.CurrentServer = servers[currentServerIndex]
-		//setStartingServer := servers[(ge.SetNumber+1)%2]
 
 		if ge.CurrentServer == ge.HomePlayerId {
 			summary.HomeServesTotal++
@@ -147,6 +132,23 @@ func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 			summary.AwayOwnServePointsTotal++
 		}
 
+		isHomeServer := ge.CurrentServer == ge.HomePlayerId
+		if isHomeServer {
+			sets[ge.SetNumber].SetSummary.HomeServes++
+		}
+		if !isHomeServer {
+			sets[ge.SetNumber].SetSummary.AwayServes++
+		}
+
+		if isHomeServer && ge.IsHomePoint == 1 {
+			sets[ge.SetNumber].SetSummary.HomeServePoints++
+		}
+
+		if !isHomeServer && ge.IsAwayPoint == 1 {
+			sets[ge.SetNumber].SetSummary.AwayServePoints++
+		}
+
+		sets[ge.SetNumber].SetSummary.EndTimestamp = ge.Timestamp
 	}
 
 	timeline.Summary = *summary
@@ -272,6 +274,19 @@ func Save(gr models.GameSetResults) {
 
 	// recalculate elo
 	calculateElo(gr.GameId)
+
+	ia, err := IsAnnounced(gr.GameId)
+	if err != nil {
+		log.Println("Error fetching announcement: ", err)
+	}
+
+	if ia == 0 {
+		game, err := GetGameById(gr.GameId)
+		if err != nil {
+			log.Println("Error fetching game data for announcement: ", err)
+		}
+		SendMessage(game)
+	}
 }
 
 func UpdateServer(gr models.ChangeServerPayload) {
@@ -281,6 +296,16 @@ func UpdateServer(gr models.ChangeServerPayload) {
 
 	if err != nil {
 		log.Println("Error updating game server, game id: ", gr.GameId, err)
+	}
+}
+
+func SetAnnounced(gid int) {
+	s := `UPDATE game SET announced = 1 WHERE id = ?`
+
+	_, err := RunTransaction(s, gid)
+
+	if err != nil {
+		log.Println("Error updating game announcement, game id: ", gid, err)
 	}
 }
 
@@ -319,6 +344,17 @@ func GetEloLastCache() ([]*models.EloCache, error) {
 	}
 
 	return gm, nil
+}
+
+func IsAnnounced(gid int) (int, error) {
+	ia := 1
+	err := models.DB.QueryRow(`select announced from game g where g.id = ?`, gid).Scan(&ia)
+
+	if err != nil {
+		return ia, err
+	}
+
+	return ia, nil
 }
 
 func GetEloCache() ([]*models.EloCache, error) {

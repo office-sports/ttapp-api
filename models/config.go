@@ -21,10 +21,21 @@ type APIConfig struct {
 	Port int `yaml:"port"`
 }
 
+type MessageConfig struct {
+	Hook      string `yaml:"hook"`
+	ChannelId string `yaml:"channel_id"`
+}
+
+type Frontend struct {
+	Url string `yaml:"url"`
+}
+
 // Config type
 type Config struct {
-	DBConfig  DBConfig  `yaml:"db"`
-	APIConfig APIConfig `yaml:"api"`
+	DBConfig      DBConfig      `yaml:"db"`
+	APIConfig     APIConfig     `yaml:"api"`
+	MessageConfig MessageConfig `yaml:"message"`
+	Frontend      Frontend      `yaml:"frontend"`
 }
 
 // GetConfig loads configuration from yaml file
