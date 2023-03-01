@@ -38,15 +38,16 @@ func GetGameServeDataQuery() string {
 func GetGameTimelineSummaryQuery() string {
 	return `select g.server_id, g.winner_id, g.home_player_id, g.away_player_id,
        p1.name homeName, p2.name as awayName, tg.name as groupName, t.name as tournamentName,
-       g.home_score as homeTotalScore, g.away_score as awayTotalScore,
-       sum(s.home_points) as homeTotalPoints,
-       sum(s.away_points) as awayTotalPoints,
-       (sum(s.home_points) / (sum(s.home_points) + sum(s.away_points))) * 100 as homePointsPerc,
-       (sum(s.away_points) / (sum(s.home_points) + sum(s.away_points))) * 100 as awayPointsPerc
+       g.home_score as homeTotalScore, 
+       g.away_score as awayTotalScore,
+       coalesce(sum(s.home_points), 0) as homeTotalPoints,
+       coalesce(sum(s.away_points), 0) as awayTotalPoints,
+       coalesce((sum(s.home_points) / (sum(s.home_points) + sum(s.away_points))) * 100, 0) as homePointsPerc,
+       coalesce((sum(s.away_points) / (sum(s.home_points) + sum(s.away_points))) * 100, 0) as awayPointsPerc
 		from game g
 		join tournament_group tg on g.tournament_group_id = tg.id
 		join tournament t on g.tournament_id = t.id
-		join scores s on s.game_id = g.id
+		left join scores s on s.game_id = g.id
 		join player p1 on g.home_player_id = p1.id
 		join player p2 on g.away_player_id = p2.id`
 }

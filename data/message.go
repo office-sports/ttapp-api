@@ -38,6 +38,10 @@ func SendMessage(result *models.GameResult) {
 
 	SetAnnounced(result.MatchId)
 
+	if config.MessageConfig.Hook == "" {
+		return
+	}
+
 	_, err = http.Post(config.MessageConfig.Hook, "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
 		panic(err)

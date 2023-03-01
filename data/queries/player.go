@@ -49,6 +49,7 @@ func GetGameWithScoresQuery() string {
 	return `select 
     	g.id, 
     	gm.max_sets,
+    	gm.wins_required as winsRequired,
     	g.tournament_id as tournamentId,
     	g.office_id as officeId,
 		tg.name as groupName, 
@@ -76,11 +77,11 @@ func GetGameWithScoresQuery() string {
 		s5.home_points as s5hp, s5.away_points s5ap,
 		s6.home_points as s5hp, s6.away_points s6ap,
 		s7.home_points as s5hp, s7.away_points s7ap,
-		coalesce(sum(pp.is_home_point), 0) as currentHomePoints, 
-		coalesce(sum(pp.is_away_point), 0) as currentAwayPoints,
+		coalesce(chp, 0) as currentHomePoints,
+        coalesce(cap, 0) as currentAwayPoints,
 		g.current_set as currentSet,
 		s.id as currentSetId,
-		if(count(pp.id) > 0, 1, 0) as hasPoints
+		if(count(ppp.id) > 0, 1, 0) as hasPoints
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
 		join player p1 on p1.id = g.home_player_id
@@ -94,6 +95,17 @@ func GetGameWithScoresQuery() string {
 		left join scores s5 on s5.game_id = g.id and s5.set_number = 5
 		left join scores s6 on s6.game_id = g.id and s6.set_number = 6
 		left join scores s7 on s7.game_id = g.id and s7.set_number = 7
-		left join scores ss on ss.game_id = g.id
-		left join points pp on pp.score_id = ss.id`
+		left join (
+            select
+                s.game_id as gid,
+                s.set_number as sn,
+                coalesce(sum(p.is_home_point), 0) as chp,
+                coalesce(sum(p.is_away_point), 0) as cap
+                from scores s
+            left join points p on p.score_id = s.id
+            group by s.game_id, s.set_number
+		) ss on ss.gid = g.id and ss.sn = g.current_set
+		left join points pp on pp.score_id = ss.gid
+		left join scores sss on sss.game_id = g.id
+		left join points ppp on ppp.score_id = sss.id`
 }

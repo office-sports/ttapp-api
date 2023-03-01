@@ -96,6 +96,20 @@ func SaveGame(writer http.ResponseWriter, request *http.Request) {
 	data.Save(gr)
 }
 
+func FinalizeGame(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	var sf models.SetFinal
+	err := json.NewDecoder(request.Body).Decode(&sf)
+
+	if err != nil {
+		log.Println("Unable to get set score id", err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	data.FinalizeGame(sf)
+}
+
 func ChangeServer(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	var p models.ChangeServerPayload

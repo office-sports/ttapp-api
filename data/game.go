@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"log"
@@ -179,7 +180,7 @@ func GetGameById(gid int) (*models.GameResult, error) {
 	ss := new(models.GameResultSetScores)
 	err := models.DB.QueryRow(queries.GetGameWithScoresQuery()+
 		` where g.id = ? order by g.date_played desc`, gid).Scan(
-		&g.MatchId, &g.MaxSets, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
+		&g.MatchId, &g.MaxSets, &g.WinsRequired, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
 		&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
 		&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 		&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
@@ -204,6 +205,17 @@ func GetGameById(gid int) (*models.GameResult, error) {
 	return g, nil
 }
 
+func deleteGamePoints(id int) {
+	s := `DELETE FROM points p WHERE p.score_id IN (select s.id from scores s where s.game_id = ?)`
+	args := make([]interface{}, 0)
+	args = append(args, id)
+	_, err := RunTransaction(s, args...)
+
+	if err != nil {
+		log.Println("Error deleting game scores, game id: ", id, err)
+	}
+}
+
 func deleteGameScores(id int) {
 	s := `DELETE FROM scores WHERE game_id = ?`
 	args := make([]interface{}, 0)
@@ -216,8 +228,21 @@ func deleteGameScores(id int) {
 }
 
 func InsertSetScore(gid int, sn int, hp *int, ap *int) (int64, error) {
-	s := `INSERT INTO scores (game_id, set_number, home_points, away_points) VALUES (?, ?, ?, ?)`
-	lid, err := RunTransaction(s, gid, sn, hp, ap)
+	hasSetScore := 0
+	var lid int64 = 0
+	err := models.DB.QueryRow(`select count(id) from scores s where s.game_id = ? and s.set_number = ?`,
+		gid, sn).Scan(&hasSetScore)
+
+	if err != nil {
+		return 0, err
+	}
+
+	// allow inserting of new set score only if it does not exist
+	if hasSetScore == 0 {
+		s := `INSERT INTO scores (game_id, set_number, home_points, away_points) VALUES (?, ?, ?, ?)`
+		lid, err := RunTransaction(s, gid, sn, hp, ap)
+		return lid, err
+	}
 
 	return lid, err
 }
@@ -265,6 +290,7 @@ func updateGame(gr models.GameSetResults, hs int, as int) {
 }
 
 func Save(gr models.GameSetResults) {
+	deleteGamePoints(gr.GameId)
 	deleteGameScores(gr.GameId)
 	saveGameScores(gr)
 	hs, as := gr.GetFullScore()
@@ -286,7 +312,81 @@ func Save(gr models.GameSetResults) {
 			log.Println("Error fetching game data for announcement: ", err)
 		}
 		SendMessage(game)
+
+		if game.IsFinished == 1 {
+
+		}
 	}
+}
+
+func increaseGameScore(sf models.SetFinal) {
+	var sql string
+	if sf.Home > sf.Away {
+		sql = `update game g set home_score = home_score + 1 where g.id = ?`
+	} else {
+		sql = `update game g set away_score = away_score + 1 where g.id = ?`
+	}
+	_, err := RunTransaction(sql, sf.GameId)
+	if err != nil {
+		log.Println("Error updating game score, game id: ", sf.GameId, err)
+	}
+}
+
+func setScores(sf models.SetFinal) {
+	var sql string
+
+	sql = `update scores s set home_points = ?, away_points = ? where s.set_number = (select current_set from game g where g.id = ?)`
+	_, err := RunTransaction(sql, sf.Home, sf.Away, sf.GameId)
+	if err != nil {
+		log.Println("Error updating scores, game id: ", sf.GameId, err)
+	}
+}
+
+func FinalizeGame(sf models.SetFinal) {
+	// update set scores first
+	setScores(sf)
+	// set game scores
+	increaseGameScore(sf)
+
+	// fetch the game to check if it is finished
+	gr, _ := GetGameById(sf.GameId)
+
+	// if any of players reached required number of wins, finish game
+	if gr.HomeScoreTotal == sf.WinsRequired || gr.AwayScoreTotal == sf.WinsRequired {
+		var winnerId int
+		if gr.HomeScoreTotal > gr.AwayScoreTotal {
+			winnerId = gr.HomePlayerId
+		} else {
+			winnerId = gr.AwayPlayerId
+		}
+
+		sql := `update game g set winner_id = ?, current_set = 1, is_finished = 1, date_played = now() where g.id = ?`
+		_, err := RunTransaction(sql, winnerId, sf.GameId)
+		if err != nil {
+			log.Println("Error finalizing game, game id: ", sf.GameId, err)
+		}
+	} else {
+		var z int = 0
+		currentSet := gr.CurrentSet + 1
+		UpdateGameCurrentSet(sf.GameId, currentSet)
+		_, err := InsertSetScore(sf.GameId, currentSet, &z, &z)
+		if err != nil {
+			log.Println("Error adding set scores, game id: ", sf.GameId, err)
+		}
+	}
+
+	fmt.Println(gr)
+
+	//
+	//fmt.Println(sf.GameId)
+	//ia := 1
+	//err := models.DB.QueryRow(`select announced from game g where g.id = ?`, gid).Scan(&ia)
+	//
+	//if err != nil {
+	//	return ia, err
+	//}
+	//
+	//return ia, nil
 }
 
 func UpdateServer(gr models.ChangeServerPayload) {

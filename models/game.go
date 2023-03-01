@@ -17,6 +17,7 @@ type Game struct {
 type GameResult struct {
 	MatchId           int        `json:"match_id"`
 	MaxSets           int        `json:"max_sets"`
+	WinsRequired      int        `json:"wins_required"`
 	GroupName         string     `json:"group_name"`
 	TournamentId      int        `json:"tournament_id"`
 	OfficeId          int        `json:"office_id"`
@@ -49,6 +50,13 @@ type SetScore struct {
 	Set  int `json:"set"`
 	Home int `json:"home"`
 	Away int `json:"away"`
+}
+
+type SetFinal struct {
+	GameId       int `json:"game_id"`
+	WinsRequired int `json:"wins_required"`
+	Home         int `json:"home"`
+	Away         int `json:"away"`
 }
 
 type GameResultSetScores struct {
