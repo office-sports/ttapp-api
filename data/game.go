@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"log"
@@ -374,19 +373,6 @@ func FinalizeGame(sf models.SetFinal) {
 			log.Println("Error adding set scores, game id: ", sf.GameId, err)
 		}
 	}
-
-	fmt.Println(gr)
-
-	//
-	//fmt.Println(sf.GameId)
-	//ia := 1
-	//err := models.DB.QueryRow(`select announced from game g where g.id = ?`, gid).Scan(&ia)
-	//
-	//if err != nil {
-	//	return ia, err
-	//}
-	//
-	//return ia, nil
 }
 
 func UpdateServer(gr models.ChangeServerPayload) {

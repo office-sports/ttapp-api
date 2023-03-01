@@ -24,7 +24,9 @@ func SendMessage(result *models.GameResult) {
 	txt := "> *" + result.GroupName + " Group* match finished\n" +
 		"> *" + result.HomePlayerName + "* " +
 		strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) + " *" + result.AwayPlayerName +
-		"* " + setScores + "\n"
+		"* " + setScores + "\n" +
+		"* <https://" + config.Frontend.Url + "/game/" + strconv.Itoa(result.MatchId) + "/result|result> | " +
+		" <https://" + config.Frontend.Url + "/tournament/" + strconv.Itoa(result.TournamentId) + "/standings|standings>"
 
 	payload := map[string]string{
 		"text":        txt,
