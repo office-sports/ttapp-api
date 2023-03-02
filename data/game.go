@@ -311,10 +311,6 @@ func Save(gr models.GameSetResults) {
 			log.Println("Error fetching game data for announcement: ", err)
 		}
 		SendMessage(game)
-
-		if game.IsFinished == 1 {
-
-		}
 	}
 }
 
@@ -363,6 +359,19 @@ func FinalizeGame(sf models.SetFinal) {
 		_, err := RunTransaction(sql, winnerId, sf.GameId)
 		if err != nil {
 			log.Println("Error finalizing game, game id: ", sf.GameId, err)
+		}
+
+		ia, err := IsAnnounced(sf.GameId)
+		if err != nil {
+			log.Println("Error fetching announcement: ", err)
+		}
+
+		if ia == 0 {
+			game, err := GetGameById(sf.GameId)
+			if err != nil {
+				log.Println("Error fetching game data for announcement: ", err)
+			}
+			SendMessage(game)
 		}
 	} else {
 		var z int = 0
