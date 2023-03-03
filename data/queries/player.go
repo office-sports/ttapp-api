@@ -109,3 +109,43 @@ func GetGameWithScoresQuery() string {
 		left join scores sss on sss.game_id = g.id
 		left join points ppp on ppp.score_id = sss.id`
 }
+
+func GetLeadersQuery() string {
+	return `select playerId player_id, pp.name player_name, 
+       		   pp.profile_pic_url, pp.office_id,
+       		   sum(won) as g_won, sum(lost) as g_lost,
+			   (sum(won) - sum(lost)) g_diff,
+			   sum(pointsFor) p_won, sum(pointsAgainst) p_lost,
+			   (sum(pointsFor) - sum(pointsAgainst)) p_diff,
+			   sum(setsFor) sWon, sum(setsAgainst) s_lost,
+			   (sum(setsFor) - sum(setsAgainst)) s_diff
+			   from (
+					SELECT g.id,
+							  g.home_player_id   AS playerId,
+							  sum(if (g.winner_id = g.home_player_id, 1, 0)) as won,
+							  sum(if (g.winner_id = g.away_player_id, 1, 0)) as lost,
+							  sum(g.home_score) as setsFor,
+							  sum(g.away_score) as setsAgainst,
+							  sum(s.home_points) AS pointsFor,
+							  sum(s.away_points) AS pointsAgainst
+					   FROM scores s
+								JOIN game g ON g.id = s.game_id
+								JOIN tournament t1 on t1.id = g.tournament_id
+					   GROUP BY g.home_player_id
+					   UNION
+					   SELECT g.id,
+							  g.away_player_id   AS playerId,
+							  sum(if (g.winner_id = g.away_player_id, 1, 0)) as won,
+							  sum(if (g.winner_id = g.home_player_id, 1, 0)) as lost,
+							  sum(g.away_score) as setsFor,
+							  sum(g.home_score) as setsAgainst,
+							  sum(s.away_points) AS pointsFor,
+							  sum(s.home_points) AS pointsAgainst
+					   FROM scores s
+								JOIN game g ON g.id = s.game_id
+								JOIN tournament t2 on t2.id = g.tournament_id
+					   GROUP BY g.away_player_id) p
+		join player pp on pp.id = p.playerId
+			   where pp.active = 1
+		group by playerId`
+}

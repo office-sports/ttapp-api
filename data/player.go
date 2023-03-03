@@ -5,6 +5,34 @@ import (
 	"github.com/office-sports/ttapp-api/models"
 )
 
+func GetLeaders() ([]*models.Leader, error) {
+	rows, err := models.DB.Query(queries.GetLeadersQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	leaders := make([]*models.Leader, 0)
+	for rows.Next() {
+		p := new(models.Leader)
+
+		err := rows.Scan(&p.PlayerId, &p.PlayerName, &p.ProfilePicUrl, &p.OfficeId, &p.GWon, &p.GLost, &p.GDiff,
+			&p.PWon, &p.PLost, &p.PDiff, &p.SWon, &p.SLost, &p.SDiff)
+		if err != nil {
+			return nil, err
+		}
+
+		leaders = append(leaders, p)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return leaders, nil
+}
+
 func GetPlayers() ([]*models.Player, error) {
 	rows, err := models.DB.Query(queries.GetPlayersDataQuery())
 

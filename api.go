@@ -27,6 +27,8 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/offices", handlers.GetOffices).Methods("GET")
 
+	router.HandleFunc("/leaders", handlers.GetLeaders).Methods("GET")
+
 	router.HandleFunc("/players", handlers.GetPlayers).Methods("GET")
 	router.HandleFunc("/players/{id}", handlers.GetPlayerById).Methods("GET")
 	router.HandleFunc("/players/{id}/results", handlers.GetPlayerResultsById).Methods("GET")

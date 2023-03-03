@@ -1,5 +1,21 @@
 package models
 
+type Leader struct {
+	PlayerId      int    `json:"player_id"`
+	PlayerName    string `json:"player_name"`
+	ProfilePicUrl string `json:"profile_pic_url"`
+	OfficeId      int    `json:"office_id"`
+	GWon          int    `json:"g_won"`
+	GLost         int    `json:"g_lost"`
+	GDiff         int    `json:"g_diff"`
+	PWon          int    `json:"p_won"`
+	PLost         int    `json:"p_lost"`
+	PDiff         int    `json:"p_diff"`
+	SWon          int    `json:"s_won"`
+	SLost         int    `json:"s_lost"`
+	SDiff         int    `json:"s_diff"`
+}
+
 type Player struct {
 	ID                int      `json:"id"`
 	Name              string   `json:"name"`

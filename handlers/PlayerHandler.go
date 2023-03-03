@@ -11,6 +11,21 @@ import (
 	"strconv"
 )
 
+func GetLeaders(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	md, err := data.GetLeaders()
+	if err == sql.ErrNoRows {
+		json.NewEncoder(writer).Encode(new(models.Leader))
+		return
+	} else if err != nil {
+		log.Println("Unable to get leaders data", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(writer).Encode(md)
+}
+
 func GetPlayers(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetPlayers()
