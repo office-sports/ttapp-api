@@ -330,8 +330,10 @@ func increaseGameScore(sf models.SetFinal) {
 func setScores(sf models.SetFinal) {
 	var sql string
 
-	sql = `update scores s set home_points = ?, away_points = ? where s.set_number = (select current_set from game g where g.id = ?)`
-	_, err := RunTransaction(sql, sf.Home, sf.Away, sf.GameId)
+	sql = `update scores s set home_points = ?, away_points = ? 
+                where s.set_number = (select current_set from game g where g.id = ?)
+                and s.game_id = ?`
+	_, err := RunTransaction(sql, sf.Home, sf.Away, sf.GameId, sf.GameId)
 	if err != nil {
 		log.Println("Error updating scores, game id: ", sf.GameId, err)
 	}
