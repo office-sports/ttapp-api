@@ -46,6 +46,15 @@ type GameResult struct {
 	SetScores         []SetScore `json:"scores"`
 }
 
+type LiveGameData struct {
+	Id             int    `json:"id"`
+	CurrentSet     int    `json:"current_set"`
+	HomePlayerName string `json:"home_player_name"`
+	AwayPlayerName string `json:"away_player_name"`
+	Phase          string `json:"phase"`
+	GroupName      string `json:"group_name"`
+}
+
 type SetScore struct {
 	Set  int `json:"set"`
 	Home int `json:"home"`

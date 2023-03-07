@@ -103,3 +103,18 @@ func GetEloLastCache() string {
             and g.id != ?
             order by g.date_played desc limit 1`
 }
+
+func GetLiveGamesQuery() string {
+	return `select
+		g.id, g.current_set, p1.name as homePlayerName, p2.name as awayPlayerName,
+		if(t.is_playoffs = 1, 'playoffs', 'group') as phase, tg.name
+		from game g
+			join tournament t on g.tournament_id = t.id
+			join tournament_group tg on g.tournament_group_id = tg.id
+			join player p1 on p1.id = g.home_player_id
+			join player p2 on p2.id = g.away_player_id
+			join scores s on s.game_id = g.id
+	where g.is_finished = 0
+	and g.is_abandoned = 0
+	having count(s.id > 0)`
+}

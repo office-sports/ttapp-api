@@ -24,6 +24,7 @@ type APIConfig struct {
 type MessageConfig struct {
 	Hook      string `yaml:"hook"`
 	ChannelId string `yaml:"channel_id"`
+	Token     string `yaml:"token"`
 }
 
 type Frontend struct {

@@ -174,6 +174,34 @@ func GetGameServe(gid int) (*models.ServeData, error) {
 	return g, nil
 }
 
+func GetLiveGames() ([]*models.LiveGameData, error) {
+	rows, err := models.DB.Query(queries.GetLiveGamesQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	gm := make([]*models.LiveGameData, 0)
+	for rows.Next() {
+		o := new(models.LiveGameData)
+		err := rows.Scan(&o.Id, &o.CurrentSet, &o.HomePlayerName, &o.AwayPlayerName,
+			&o.Phase, &o.GroupName)
+		if err != nil {
+			return nil, err
+		}
+
+		gm = append(gm, o)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gm, nil
+
+}
+
 func GetGameById(gid int) (*models.GameResult, error) {
 	g := new(models.GameResult)
 	ss := new(models.GameResultSetScores)

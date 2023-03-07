@@ -65,6 +65,16 @@ func GetGameServe(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(serve)
 }
 
+func GetGamesLive(writer http.ResponseWriter, request *http.Request) {
+	g, err := data.GetLiveGames()
+	if err != nil {
+		log.Println("Unable to get live games", err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(writer).Encode(g)
+}
+
 func GetGameById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
