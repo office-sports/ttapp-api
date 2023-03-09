@@ -315,6 +315,8 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 					group.HomePlayerDisplayName = "Winner, #" + s[1]
 				} else if s[0] == "L" {
 					group.HomePlayerDisplayName = "Loser, #" + s[1]
+				} else if s[0] == "G" {
+					group.HomePlayerDisplayName = "Group, #" + s[1]
 				}
 			}
 
@@ -324,6 +326,8 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 					group.AwayPlayerDisplayName = "Winner, #" + s[1]
 				} else if s[0] == "L" {
 					group.AwayPlayerDisplayName = "Loser, #" + s[1]
+				} else if s[0] == "G" {
+					group.AwayPlayerDisplayName = "Group, #" + s[1]
 				}
 			}
 
