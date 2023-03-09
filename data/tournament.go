@@ -65,7 +65,7 @@ select t.id, t.name, t.is_finished, t.is_playoffs,
                 group by g.tournament_id
             ) s on s.tid = t.id				
 			where t.is_official = 1 and t.is_finished = 0
-			and g.office_id = 1`)
+			group by t.id`)
 
 	if err != nil {
 		return nil, err
