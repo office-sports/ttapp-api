@@ -53,6 +53,12 @@ func GetGameTimeline(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(timeline)
 }
 
+func AnnounceGame(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	gid, _ := strconv.Atoi(params["id"])
+	data.AnnounceGame(gid)
+}
+
 func GetGameServe(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	tid, _ := strconv.Atoi(params["id"])
@@ -92,6 +98,7 @@ func GetGameById(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(g)
 }
 
+// SaveGame handles manual score input
 func SaveGame(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	var gr models.GameSetResults
@@ -106,6 +113,7 @@ func SaveGame(writer http.ResponseWriter, request *http.Request) {
 	data.Save(gr)
 }
 
+// FinalizeGame ends set or set + game
 func FinalizeGame(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	var sf models.SetFinal

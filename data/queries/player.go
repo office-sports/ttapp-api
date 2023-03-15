@@ -81,7 +81,9 @@ func GetGameWithScoresQuery() string {
         coalesce(cap, 0) as currentAwayPoints,
 		g.current_set as currentSet,
 		s.id as currentSetId,
-		if(count(ppp.id) > 0, 1, 0) as hasPoints
+		if(count(ppp.id) > 0, 1, 0) as hasPoints,
+		g.announced,
+		g.ts
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
 		join player p1 on p1.id = g.home_player_id

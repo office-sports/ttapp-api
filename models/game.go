@@ -43,6 +43,8 @@ type GameResult struct {
 	CurrentAwayPoints *int       `json:"current_away_points"`
 	CurrentSet        int        `json:"current_set"`
 	CurrentSetId      *int       `json:"current_set_id"`
+	Announced         int        `json:"announced"`
+	TS                string     `json:"ts"`
 	SetScores         []SetScore `json:"scores"`
 }
 
@@ -153,6 +155,10 @@ type GameEvent struct {
 	Timestamp                int `json:"timestamp"`
 	RallySeconds             int `json:"rally_seconds"`
 	SetNumber                int `json:"set_number"`
+}
+
+type GameId struct {
+	Id int `json:"id"`
 }
 
 type GameSetResults struct {
