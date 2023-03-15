@@ -5,4 +5,10 @@ db:
   password:
   schema:
 api:
-  port: 
+  port:
+message:
+  hook:
+  channel_id:
+  token:
+frontend:
+  url: 
