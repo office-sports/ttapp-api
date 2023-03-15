@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"log"
@@ -211,7 +212,8 @@ func GetGameById(gid int) (*models.GameResult, error) {
 		&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
 		&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 		&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
-		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId, &g.HasPoints)
+		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId, &g.HasPoints,
+		&g.Announced, &g.TS)
 
 	if err != nil {
 		return nil, err
@@ -328,17 +330,18 @@ func Save(gr models.GameSetResults) {
 	// recalculate elo
 	calculateElo(gr.GameId)
 
-	ia, err := IsAnnounced(gr.GameId)
+	ann, err := IsAnnounced(gr.GameId)
 	if err != nil {
 		log.Println("Error fetching announcement: ", err)
 	}
 
-	if ia == 0 {
+	if ann.IsAnnounced == 0 {
 		game, err := GetGameById(gr.GameId)
 		if err != nil {
 			log.Println("Error fetching game data for announcement: ", err)
 		}
-		SendMessage(game)
+		SendEndSetMessage(game)
+		// TODO remove SendFinalMessage(game)
 	}
 }
 
@@ -367,6 +370,20 @@ func setScores(sf models.SetFinal) {
 	}
 }
 
+func AnnounceGame(gid int) {
+	game, err := GetGameById(gid)
+	fmt.Println("loaded game", game.Announced)
+	if err != nil {
+		log.Println("Error fetching game data for announcement: ", err)
+	}
+
+	if game.Announced == 0 {
+		SetAnnounced(gid, 1, "0")
+		fmt.Println("sending message")
+		SendStartMessage(game)
+	}
+}
+
 func FinalizeGame(sf models.SetFinal) {
 	// update set scores first
 	setScores(sf)
@@ -390,19 +407,6 @@ func FinalizeGame(sf models.SetFinal) {
 		if err != nil {
 			log.Println("Error finalizing game, game id: ", sf.GameId, err)
 		}
-
-		ia, err := IsAnnounced(sf.GameId)
-		if err != nil {
-			log.Println("Error fetching announcement: ", err)
-		}
-
-		if ia == 0 {
-			game, err := GetGameById(sf.GameId)
-			if err != nil {
-				log.Println("Error fetching game data for announcement: ", err)
-			}
-			SendMessage(game)
-		}
 	} else {
 		var z int = 0
 		currentSet := gr.CurrentSet + 1
@@ -412,6 +416,11 @@ func FinalizeGame(sf models.SetFinal) {
 			log.Println("Error adding set scores, game id: ", sf.GameId, err)
 		}
 	}
+
+	// reload the game
+	gr, _ = GetGameById(sf.GameId)
+
+	SendEndSetMessage(gr)
 }
 
 func UpdateServer(gr models.ChangeServerPayload) {
@@ -424,13 +433,23 @@ func UpdateServer(gr models.ChangeServerPayload) {
 	}
 }
 
-func SetAnnounced(gid int) {
-	s := `UPDATE game SET announced = 1 WHERE id = ?`
+func SetAnnounced(gid int, announced int, ts string) {
+	s := `UPDATE game SET announced = ?, ts = ? WHERE id = ?`
 
-	_, err := RunTransaction(s, gid)
+	_, err := RunTransaction(s, announced, ts, gid)
 
 	if err != nil {
 		log.Println("Error updating game announcement, game id: ", gid, err)
+	}
+}
+
+func SetTs(gid int, ts string) {
+	s := `UPDATE game SET ts = ? WHERE id = ?`
+
+	_, err := RunTransaction(s, ts, gid)
+
+	if err != nil {
+		log.Println("Error updating game ts, game id: ", gid, err)
 	}
 }
 
@@ -471,15 +490,15 @@ func GetEloLastCache() ([]*models.EloCache, error) {
 	return gm, nil
 }
 
-func IsAnnounced(gid int) (int, error) {
-	ia := 1
-	err := models.DB.QueryRow(`select announced from game g where g.id = ?`, gid).Scan(&ia)
+func IsAnnounced(gid int) (*models.Announcement, error) {
+	ann := new(models.Announcement)
+	err := models.DB.QueryRow(`select announced, ts from game g where g.id = ?`, gid).Scan(&ann.IsAnnounced, &ann.Ts)
 
 	if err != nil {
-		return ia, err
+		return ann, err
 	}
 
-	return ia, nil
+	return ann, nil
 }
 
 func GetEloCache() ([]*models.EloCache, error) {
