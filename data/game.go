@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"log"
@@ -372,14 +371,12 @@ func setScores(sf models.SetFinal) {
 
 func AnnounceGame(gid int) {
 	game, err := GetGameById(gid)
-	fmt.Println("loaded game", game.Announced)
 	if err != nil {
 		log.Println("Error fetching game data for announcement: ", err)
 	}
 
 	if game.Announced == 0 {
 		SetAnnounced(gid, 1, "0")
-		fmt.Println("sending message")
 		SendStartMessage(game)
 	}
 }
