@@ -111,7 +111,16 @@ func SendEndSetMessage(result *models.GameResult) {
 
 	if result.IsFinished == 1 {
 		pretext, text := getFinalMessageText(result, config)
-		UpdateSlackMessage(*config, pretext, text, ann.Ts)
+
+		if ann.Ts == "0" {
+			// There was no manual scoring and there is no thread id
+			// which means we use scores form
+			SendSlackMessage(*config, pretext, text, ann.Ts)
+		} else {
+			// The manual scoring was started and the thread id is present
+			// so the original message needs to be update
+			UpdateSlackMessage(*config, pretext, text, ann.Ts)
+		}
 
 		// Set announcement fields to final state
 		SetAnnounced(result.MatchId, 1, "0")
