@@ -11,126 +11,95 @@ import (
 	"strconv"
 )
 
+// GetTournaments returns array of tournaments
 func GetTournaments(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetTournaments()
 	if err == sql.ErrNoRows {
-		json.NewEncoder(writer).Encode(new(models.Office))
-		return
-	} else if err != nil {
-		log.Println("Unable to get metadata", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		json.NewEncoder(writer).Encode(new(models.Tournament))
 		return
 	}
+	checkErrHTTP(err, writer, "Unable to get tournaments")
 
 	json.NewEncoder(writer).Encode(md)
 }
 
-func GetLiveTournament(writer http.ResponseWriter, request *http.Request) {
+// GetLiveTournaments returns an array of all live tournaments
+func GetLiveTournaments(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
-	md, err := data.GetLiveTournament()
+	md, err := data.GetLiveTournaments()
 	if err == sql.ErrNoRows {
 		json.NewEncoder(writer).Encode(new(models.Tournament))
 		return
-	} else if err != nil {
-		log.Println("Unable to get tournament data", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
 	}
+	checkErrHTTP(err, writer, "Unable to get live tournaments")
 
 	json.NewEncoder(writer).Encode(md)
 }
 
+// GetTournamentById returns tournament data for requested id
+func GetTournamentById(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid tournament id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+	tournament, err := data.GetTournamentById(id)
+	checkErrHTTP(err, writer, "Unable to get tournament")
+
+	json.NewEncoder(writer).Encode(tournament)
+}
+
+// GetTournamentSchedule returns tournament games ordered by date
 func GetTournamentSchedule(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	tid, _ := strconv.Atoi(params["id"])
 	num, _ := strconv.Atoi(params["num"])
 	schedule, err := data.GetTournamentSchedule(tid, num)
-	if err != nil {
-		log.Println("Unable to get tournament schedule", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get tournament schedule")
+
 	json.NewEncoder(writer).Encode(schedule)
 }
 
+// GetTournamentResults returns array of finished games for requested tournament
 func GetTournamentResults(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	tid, _ := strconv.Atoi(params["id"])
 	num, _ := strconv.Atoi(params["num"])
-	schedule, err := data.GetTournamentResults(tid, num)
-	if err != nil {
-		log.Println("Unable to get tournament results", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(writer).Encode(schedule)
+	results, err := data.GetTournamentResults(tid, num)
+	checkErrHTTP(err, writer, "Unable to get tournament results")
+
+	json.NewEncoder(writer).Encode(results)
 }
 
+// GetTournamentStandingsById returns standings for requested tournament
 func GetTournamentStandingsById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid tournament standings id")
 		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
 		return
 	}
 	standings, err := data.GetTournamentStandingsById(id)
-	if err != nil {
-		log.Println("Unable to get tournament standings", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get tournament standings")
+
 	json.NewEncoder(writer).Encode(standings)
 }
 
-func GetTournamentLeaders(writer http.ResponseWriter, request *http.Request) {
-	params := mux.Vars(request)
-	id, _ := strconv.Atoi(params["id"])
-	if id == 0 {
-		log.Println("Invalid id")
-		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
-		return
-	}
-	standings, err := data.GetTournamentLeaders(id)
-	if err != nil {
-		log.Println("Unable to get tournament standings", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(writer).Encode(standings)
-}
-
+// GetTournamentLadders returns playoffs tournament ladders
 func GetTournamentLadders(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
 	if id == 0 {
-		log.Println("Invalid id")
+		log.Println("Invalid tournament ladder id")
 		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
 		return
 	}
-	standings, err := data.GetTournamentLadders(id)
-	if err != nil {
-		log.Println("Unable to get tournament ladders", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(writer).Encode(standings)
-}
+	ladders, err := data.GetTournamentLadders(id)
+	checkErrHTTP(err, writer, "Unable to get tournament ladders")
 
-func GetTournamentById(writer http.ResponseWriter, request *http.Request) {
-	params := mux.Vars(request)
-	id, _ := strconv.Atoi(params["id"])
-	if id == 0 {
-		log.Println("Invalid id")
-		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
-		return
-	}
-	standings, err := data.GetTournamentById(id)
-	if err != nil {
-		log.Println("Unable to get tournament", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(writer).Encode(standings)
+	json.NewEncoder(writer).Encode(ladders)
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/office-sports/ttapp-api/models"
+	"log"
 	"net/http"
 )
 
@@ -34,4 +35,20 @@ func JSONSuccess(w http.ResponseWriter, err string, code int) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(e)
+}
+
+// checkErrHTTP check handler errors and sends HTTP response 500
+func checkErrHTTP(err error, writer http.ResponseWriter, message string) {
+	if err != nil {
+		log.Println(message, err)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// checkErrSimple stop on error with return
+func checkErrSimple(err error) {
+	if err != nil {
+		return
+	}
 }

@@ -34,7 +34,7 @@ func GetPlayerDataQuery() string {
 
 func GetPlayerEloHistoryQuery() string {
 	return `select 
-    			if (p.id = g.home_player_id, g.new_home_elo, g.new_away_elo) as elo
+    		coalesce(if (p.id = g.home_player_id, g.new_home_elo, g.new_away_elo), 0) as elo
 			from player p
 			left join game g on p.id in (g.home_player_id, g.away_player_id)
 			join tournament t on g.tournament_id = t.id
@@ -82,8 +82,8 @@ func GetGameWithScoresQuery() string {
 		g.current_set as currentSet,
 		s.id as currentSetId,
 		if(count(ppp.id) > 0, 1, 0) as hasPoints,
-		g.announced,
-		g.ts
+		g.announced, g.ts, COALESCE(g.name, '') as name, COALESCE(g.play_order, 0) as play_order,
+		coalesce(g.level, "") as level
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
 		join player p1 on p1.id = g.home_player_id

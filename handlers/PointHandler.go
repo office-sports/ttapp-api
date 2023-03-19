@@ -8,18 +8,14 @@ import (
 	"net/http"
 )
 
+// AddPoint handles adding point to the database table
 func AddPoint(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	var p models.PointPayload
 	err := json.NewDecoder(request.Body).Decode(&p)
 
 	s, err := data.GetScoresByGameId(p.GameId)
-
-	if err != nil {
-		log.Println("Unable to get scores for game", err)
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get scores for game")
 
 	// check if we have sets data for this game
 	if len(s) == 0 {
@@ -51,14 +47,12 @@ func AddPoint(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	serve, err := data.GetGameServe(p.GameId)
-	if err != nil {
-		log.Println("Unable to get game serve data", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get game serve data")
+
 	json.NewEncoder(writer).Encode(serve)
 }
 
+// DelPoint handles removing point from the database table
 func DelPoint(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	var p models.PointPayload
@@ -66,21 +60,14 @@ func DelPoint(writer http.ResponseWriter, request *http.Request) {
 
 	maxPid, err := data.GetMaxPoint(p.GameId, p.IsHomePoint, p.IsAwayPoint)
 
-	if err != nil {
-		log.Println("Unable to get max point for game", err)
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get max point for game")
 
 	if maxPid != 0 {
 		data.DeletePointById(maxPid)
 	}
 
 	serve, err := data.GetGameServe(p.GameId)
-	if err != nil {
-		log.Println("Unable to get game serve data", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get game serve data")
+
 	json.NewEncoder(writer).Encode(serve)
 }

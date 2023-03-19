@@ -5,6 +5,33 @@ import (
 	"github.com/office-sports/ttapp-api/models"
 )
 
+func GetPlayers() ([]*models.Player, error) {
+	rows, err := models.DB.Query(queries.GetPlayersDataQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	players := make([]*models.Player, 0)
+	for rows.Next() {
+		p := new(models.Player)
+		err := rows.Scan(&p.ID, &p.Name, &p.Nickname, &p.Elo, &p.OldElo, &p.EloChange, &p.GamesPlayed,
+			&p.Wins, &p.Draws, &p.Losses, &p.OfficeId, &p.WinPercentage, &p.Active)
+		if err != nil {
+			return nil, err
+		}
+
+		players = append(players, p)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return players, nil
+}
+
 func GetLeaders() ([]*models.Leader, error) {
 	rows, err := models.DB.Query(queries.GetLeadersQuery())
 
@@ -33,33 +60,7 @@ func GetLeaders() ([]*models.Leader, error) {
 	return leaders, nil
 }
 
-func GetPlayers() ([]*models.Player, error) {
-	rows, err := models.DB.Query(queries.GetPlayersDataQuery())
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	players := make([]*models.Player, 0)
-	for rows.Next() {
-		p := new(models.Player)
-		err := rows.Scan(&p.ID, &p.Name, &p.Nickname, &p.Elo, &p.OldElo, &p.EloChange, &p.GamesPlayed,
-			&p.Wins, &p.Draws, &p.Losses, &p.OfficeId, &p.WinPercentage, &p.Active)
-		if err != nil {
-			return nil, err
-		}
-
-		players = append(players, p)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return players, nil
-}
-
+// GetPlayerById returns player model for requested id
 func GetPlayerById(id int) (*models.Player, error) {
 	p := new(models.Player)
 	err := models.DB.QueryRow(queries.GetPlayerDataQuery(), id).
@@ -107,6 +108,7 @@ func GetPlayerById(id int) (*models.Player, error) {
 	return p, nil
 }
 
+// GetPlayerGamesById returns array of player games for requested player id, flag isFinished gets only finished games
 func GetPlayerGamesById(pid int, finished int) ([]*models.GameResult, error) {
 	rows, err := models.DB.Query(queries.GetGameWithScoresQuery()+
 		` where (g.home_player_id = ? OR g.away_player_id = ?)
@@ -123,12 +125,13 @@ func GetPlayerGamesById(pid int, finished int) ([]*models.GameResult, error) {
 	for rows.Next() {
 		g := new(models.GameResult)
 		ss := new(models.GameResultSetScores)
-		err := rows.Scan(&g.MatchId, &g.MaxSets, &g.WinsRequired, &g.TournamentId, &g.OfficeId, &g.GroupName, &g.DateOfMatch, &g.DatePlayed,
-			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
-			&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
-			&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
-			&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId, &g.HasPoints,
-			&g.Announced, &g.TS)
+		err := rows.Scan(&g.MatchId, &g.MaxSets, &g.WinsRequired, &g.TournamentId, &g.OfficeId, &g.GroupName,
+			&g.DateOfMatch, &g.DatePlayed, &g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName,
+			&g.WinnerId, &g.HomeScoreTotal, &g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo,
+			&g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff, &ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap,
+			&ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap, &ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap,
+			&g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId, &g.HasPoints,
+			&g.Announced, &g.TS, &g.Name, &g.PlayOrder, &g.Level)
 		if err != nil {
 			return nil, err
 		}

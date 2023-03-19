@@ -5,8 +5,137 @@ import (
 	"github.com/office-sports/ttapp-api/models"
 	"log"
 	"math"
+	"strconv"
 )
 
+// GetLiveGames returns array of live games models
+func GetLiveGames() ([]*models.LiveGameData, error) {
+	rows, err := models.DB.Query(queries.GetLiveGamesQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	gm := make([]*models.LiveGameData, 0)
+	for rows.Next() {
+		o := new(models.LiveGameData)
+		err := rows.Scan(&o.Id, &o.CurrentSet, &o.HomePlayerName, &o.AwayPlayerName,
+			&o.Phase, &o.GroupName)
+		if err != nil {
+			return nil, err
+		}
+
+		gm = append(gm, o)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gm, nil
+}
+
+// GetTournamentLiveGames returns array of live games models
+func GetTournamentLiveGames(id int) ([]*models.LiveGameData, error) {
+	rows, err := models.DB.Query(queries.GetTournamentLiveGamesQuery(), id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	gm := make([]*models.LiveGameData, 0)
+	for rows.Next() {
+		o := new(models.LiveGameData)
+		err := rows.Scan(&o.Id, &o.CurrentSet, &o.HomePlayerName, &o.AwayPlayerName,
+			&o.Phase, &o.GroupName)
+		if err != nil {
+			return nil, err
+		}
+
+		gm = append(gm, o)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gm, nil
+}
+
+// FinalizeGame handles all the game finalizing processes
+func FinalizeGame(sf models.SetFinal) {
+	// update set scores first
+	setScores(sf)
+	// set game scores
+	increaseGameScore(sf)
+
+	// fetch the game to check if it is finished
+	gr, _ := GetGameById(sf.GameId)
+
+	// if any of players reached required number of wins, finish game
+	if gr.HomeScoreTotal == sf.WinsRequired || gr.AwayScoreTotal == sf.WinsRequired {
+		var winnerId, loserId int
+		if gr.HomeScoreTotal > gr.AwayScoreTotal {
+			winnerId = gr.HomePlayerId
+			loserId = gr.AwayPlayerId
+		} else {
+			winnerId = gr.AwayPlayerId
+			loserId = gr.HomePlayerId
+		}
+
+		_, err := RunTransaction(queries.FinishGameQuery(), winnerId, sf.GameId)
+		if err != nil {
+			log.Println("Error finalizing game, game id: ", sf.GameId, err)
+		}
+
+		// if this is playoffs game, update next one, if needed
+		if gr.Name != "" && gr.PlayOrder > 0 {
+			UpdateNextPlayoffsGame(winnerId, loserId, gr.PlayOrder)
+		}
+	} else {
+		var z int = 0
+		currentSet := gr.CurrentSet + 1
+		UpdateGameCurrentSet(sf.GameId, currentSet)
+		_, err := InsertSetScore(sf.GameId, currentSet, &z, &z)
+		if err != nil {
+			log.Println("Error adding set scores, game id: ", sf.GameId, err)
+		}
+	}
+
+	// reload the game
+	gr, _ = GetGameById(sf.GameId)
+
+	SendEndSetMessage(gr)
+}
+
+func UpdateNextPlayoffsGame(winnerId int, loserId int, playOrder int) {
+	updateStringWinner := "W." + strconv.Itoa(playOrder)
+	updateStringLoser := "L." + strconv.Itoa(playOrder)
+
+	_, err := RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), winnerId, updateStringWinner)
+	if err != nil {
+		log.Println("Error setting next playoffs game data for player, game id: ", err)
+	}
+
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), loserId, updateStringLoser)
+	if err != nil {
+		log.Println("Error setting next playoffs game data for player, game id: ", err)
+	}
+
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), winnerId, updateStringWinner)
+	if err != nil {
+		log.Println("Error setting next playoffs game data for player, game id: ", err)
+	}
+
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), loserId, updateStringLoser)
+	if err != nil {
+		log.Println("Error setting next playoffs game data for player, game id: ", err)
+	}
+}
+
+// GetGameModes returns array of game modes
 func GetGameModes() ([]*models.GameMode, error) {
 	rows, err := models.DB.Query(queries.GetGameModesQuery())
 
@@ -33,6 +162,7 @@ func GetGameModes() ([]*models.GameMode, error) {
 	return gm, nil
 }
 
+// GetGameTimeline returns game timeline for requested id
 func GetGameTimeline(gid int) (*models.GameTimeline, error) {
 	timeline := new(models.GameTimeline)
 	summary := new(models.GameTimelineGameSummary)
@@ -174,34 +304,6 @@ func GetGameServe(gid int) (*models.ServeData, error) {
 	return g, nil
 }
 
-func GetLiveGames() ([]*models.LiveGameData, error) {
-	rows, err := models.DB.Query(queries.GetLiveGamesQuery())
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	gm := make([]*models.LiveGameData, 0)
-	for rows.Next() {
-		o := new(models.LiveGameData)
-		err := rows.Scan(&o.Id, &o.CurrentSet, &o.HomePlayerName, &o.AwayPlayerName,
-			&o.Phase, &o.GroupName)
-		if err != nil {
-			return nil, err
-		}
-
-		gm = append(gm, o)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gm, nil
-
-}
-
 func GetGameById(gid int) (*models.GameResult, error) {
 	g := new(models.GameResult)
 	ss := new(models.GameResultSetScores)
@@ -212,7 +314,7 @@ func GetGameById(gid int) (*models.GameResult, error) {
 		&g.AwayScoreTotal, &g.IsWalkover, &g.IsFinished, &g.HomeElo, &g.AwayElo, &g.NewHomeElo, &g.NewAwayElo, &g.HomeEloDiff, &g.AwayEloDiff,
 		&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
 		&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap, &g.CurrentHomePoints, &g.CurrentAwayPoints, &g.CurrentSet, &g.CurrentSetId, &g.HasPoints,
-		&g.Announced, &g.TS)
+		&g.Announced, &g.TS, &g.Name, &g.PlayOrder, &g.Level)
 
 	if err != nil {
 		return nil, err
@@ -317,10 +419,15 @@ func updateGame(gr models.GameSetResults, hs int, as int) {
 	}
 }
 
-func Save(gr models.GameSetResults) {
+// SaveGameScore handles game closing
+func SaveGameScore(gr models.GameSetResults) {
+	// delete all points connected to the game when entering final score manually
 	deleteGamePoints(gr.GameId)
+	// delete previous set scores
 	deleteGameScores(gr.GameId)
+	// save passed set scores
 	saveGameScores(gr)
+
 	hs, as := gr.GetFullScore()
 
 	// save data into game table, set scores, winner, is_finished, date_played
@@ -340,7 +447,6 @@ func Save(gr models.GameSetResults) {
 			log.Println("Error fetching game data for announcement: ", err)
 		}
 		SendEndSetMessage(game)
-		// TODO remove SendFinalMessage(game)
 	}
 }
 
@@ -369,6 +475,7 @@ func setScores(sf models.SetFinal) {
 	}
 }
 
+// AnnounceGame updates db and sends message
 func AnnounceGame(gid int) {
 	game, err := GetGameById(gid)
 	if err != nil {
@@ -381,50 +488,9 @@ func AnnounceGame(gid int) {
 	}
 }
 
-func FinalizeGame(sf models.SetFinal) {
-	// update set scores first
-	setScores(sf)
-	// set game scores
-	increaseGameScore(sf)
-
-	// fetch the game to check if it is finished
-	gr, _ := GetGameById(sf.GameId)
-
-	// if any of players reached required number of wins, finish game
-	if gr.HomeScoreTotal == sf.WinsRequired || gr.AwayScoreTotal == sf.WinsRequired {
-		var winnerId int
-		if gr.HomeScoreTotal > gr.AwayScoreTotal {
-			winnerId = gr.HomePlayerId
-		} else {
-			winnerId = gr.AwayPlayerId
-		}
-
-		sql := `update game g set winner_id = ?, current_set = 1, is_finished = 1, date_played = now() where g.id = ?`
-		_, err := RunTransaction(sql, winnerId, sf.GameId)
-		if err != nil {
-			log.Println("Error finalizing game, game id: ", sf.GameId, err)
-		}
-	} else {
-		var z int = 0
-		currentSet := gr.CurrentSet + 1
-		UpdateGameCurrentSet(sf.GameId, currentSet)
-		_, err := InsertSetScore(sf.GameId, currentSet, &z, &z)
-		if err != nil {
-			log.Println("Error adding set scores, game id: ", sf.GameId, err)
-		}
-	}
-
-	// reload the game
-	gr, _ = GetGameById(sf.GameId)
-
-	SendEndSetMessage(gr)
-}
-
+// UpdateServer sets the server id in the db
 func UpdateServer(gr models.ChangeServerPayload) {
-	s := `UPDATE game SET server_id = ? WHERE id = ?`
-
-	_, err := RunTransaction(s, gr.ServerId, gr.GameId)
-
+	_, err := RunTransaction(queries.UpdateServerQuery(), gr.ServerId, gr.GameId)
 	if err != nil {
 		log.Println("Error updating game server, game id: ", gr.GameId, err)
 	}
@@ -498,6 +564,7 @@ func IsAnnounced(gid int) (*models.Announcement, error) {
 	return ann, nil
 }
 
+// GetEloCache returns array of finished games with ELO values and scores
 func GetEloCache() ([]*models.EloCache, error) {
 	rows, err := models.DB.Query(queries.GetEloCache())
 

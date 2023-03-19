@@ -9,7 +9,13 @@ import (
 )
 
 func getStartMessageText(result *models.GameResult, config *models.Config) (pretext string, text string) {
-	pretext = "*" + result.GroupName + " Group* match started!"
+	// playoffs match has a different message
+	// each match has a name in playoffs, check it
+	if result.Name != "" {
+		pretext = ":table_tennis_paddle_and_ball: *" + result.GroupName + " Playoffs*, " + result.Name + " started!"
+	} else {
+		pretext = "*" + result.GroupName + " Group* match started!"
+	}
 	text = "*" + result.HomePlayerName + "* vs *" + result.AwayPlayerName + "*\n" +
 		":eye: <https://" + config.Frontend.Url + "/game/" + strconv.Itoa(result.MatchId) + "/spectate|spectate>"
 
@@ -56,12 +62,31 @@ func getFinalMessageText(result *models.GameResult, config *models.Config) (pret
 	}
 	setScores = strings.TrimSuffix(setScores, ", ") + ")"
 
-	pretext = "*" + result.GroupName + " Group* match finished"
-	text = "*" + result.HomePlayerName + "* " +
-		strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) + " *" + result.AwayPlayerName +
-		"* " + setScores + "\n" +
-		"<https://" + config.Frontend.Url + "/game/" + strconv.Itoa(result.MatchId) + "/result|result> | " +
-		"<https://" + config.Frontend.Url + "/tournament/" + strconv.Itoa(result.TournamentId) + "/standings|standings>"
+	if result.Name != "" {
+		result.Level = strings.Replace(result.Level, "|LEAGUE|", result.GroupName, -1)
+		if result.WinnerId == result.HomePlayerId {
+			result.Level = strings.Replace(result.Level, "|WINNER|", result.HomePlayerName, -1)
+		}
+		if result.WinnerId == result.AwayPlayerId {
+			result.Level = strings.Replace(result.Level, "|WINNER|", result.AwayPlayerName, -1)
+		}
+		pretext = ":table_tennis_paddle_and_ball: *" + result.GroupName + " Playoffs*, " + result.Name + " finished!\n" +
+			result.Level
+
+		text = "*" + result.HomePlayerName + "* " +
+			strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) + " *" + result.AwayPlayerName +
+			"* " + setScores + "\n" +
+			"<https://" + config.Frontend.Url + "/game/" + strconv.Itoa(result.MatchId) + "/result|result> | " +
+			"<https://" + config.Frontend.Url + "/tournament/" + strconv.Itoa(result.TournamentId) + "/ladders|ladders>"
+	} else {
+		pretext = "*" + result.GroupName + " Group* match finished"
+
+		text = "*" + result.HomePlayerName + "* " +
+			strconv.Itoa(result.HomeScoreTotal) + ":" + strconv.Itoa(result.AwayScoreTotal) + " *" + result.AwayPlayerName +
+			"* " + setScores + "\n" +
+			"<https://" + config.Frontend.Url + "/game/" + strconv.Itoa(result.MatchId) + "/result|result> | " +
+			"<https://" + config.Frontend.Url + "/tournament/" + strconv.Itoa(result.TournamentId) + "/standings|standings>"
+	}
 
 	return pretext, text
 }
@@ -93,7 +118,7 @@ func SendEndSetMessage(result *models.GameResult) {
 	if err != nil {
 		panic(err)
 	}
-	if config.MessageConfig.Hook == "" {
+	if config.MessageConfig.Hook == "" || config.MessageConfig.ChannelId == "" || config.MessageConfig.Token == "" {
 		return
 	}
 

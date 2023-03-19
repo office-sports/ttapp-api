@@ -6,23 +6,9 @@ import (
 	"strings"
 )
 
+// GetTournaments returns array of tournament models
 func GetTournaments() ([]*models.Tournament, error) {
-	rows, err := models.DB.Query(`
-			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
-			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
-			from tournament t
-			left join game g on g.tournament_id = t.id
-			left join (
-			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
-                from scores s
-                join game g on s.game_id = g.id
-                group by g.tournament_id
-            ) s on s.tid = t.id			
-			where t.is_official = 1
-			group by t.id, t.start_time
-			order by t.start_time desc`)
+	rows, err := models.DB.Query(queries.GetTournamentsQuery())
 
 	if err != nil {
 		return nil, err
@@ -48,24 +34,9 @@ func GetTournaments() ([]*models.Tournament, error) {
 	return tournaments, nil
 }
 
-func GetLiveTournament() ([]*models.Tournament, error) {
-	rows, err := models.DB.Query(`
-select t.id, t.name, t.is_finished, t.is_playoffs, 
-       t.start_time, 
-	   IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-       t.office_id,
-			count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
-			from tournament t
-			left join game g on g.tournament_id = t.id
-			left join (
-			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
-                from scores s
-                join game g on s.game_id = g.id
-                group by g.tournament_id
-            ) s on s.tid = t.id				
-			where t.is_official = 1 and t.is_finished = 0
-			group by t.id`)
+// GetLiveTournaments returns array of live tournament models
+func GetLiveTournaments() ([]*models.Tournament, error) {
+	rows, err := models.DB.Query(queries.GetLiveTournamentsQuery())
 
 	if err != nil {
 		return nil, err
@@ -91,6 +62,21 @@ select t.id, t.name, t.is_finished, t.is_playoffs,
 	return tournaments, nil
 }
 
+// GetTournamentById returns tournament model
+func GetTournamentById(id int) (*models.Tournament, error) {
+	t := new(models.Tournament)
+	err := models.DB.QueryRow(queries.GetTournamentByIdQuery(), id).Scan(
+		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
+		&t.Participants, &t.Scheduled, &t.Finished)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+// GetTournamentSchedule returns array of games for requested tournament id
 func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 	if num == 0 {
 		num = 1000
@@ -131,6 +117,7 @@ func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 	return results, nil
 }
 
+// GetTournamentResults returns array of finished games for requested tournament id
 func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
 	if num == 0 {
 		num = 1000
@@ -183,30 +170,6 @@ func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
 	return results, nil
 }
 
-func GetTournamentLeaders(id int) ([]*models.GroupStandingsPlayer, error) {
-	rows, err := models.DB.Query(queries.GetTournamentStandingsQuery(), id, id, id, id)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	results := make([]*models.GroupStandingsPlayer, 0)
-	for rows.Next() {
-		p := new(models.GroupStandingsPlayer)
-		err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
-			&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
-			&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
-		if err != nil {
-			return nil, err
-		}
-
-		results = append(results, p)
-	}
-
-	return results, nil
-}
-
 func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
 	rows, err := models.DB.Query(queries.GetTournamentStandingsQuery(), id, id, id, id)
 
@@ -218,7 +181,6 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	results := make([]*models.GroupStandingsPlayer, 0)
 	for rows.Next() {
 		p := new(models.GroupStandingsPlayer)
-		//ss := new(models.GameResultSetScores)
 		err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
 			&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
 			&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
@@ -257,28 +219,7 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	return groups, nil
 }
 
-func GetTournamentById(id int) (*models.Tournament, error) {
-	t := new(models.Tournament)
-	err := models.DB.QueryRow(`
-			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
-			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
-			from tournament t
-			left join game g on g.tournament_id = t.id
-			where t.is_official = 1 and t.id = ?
-			group by t.id, t.start_time
-			order by t.start_time desc`, id).Scan(
-		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
-		&t.Participants, &t.Scheduled, &t.Finished)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return t, nil
-}
-
+// GetTournamentLadders returns array of playoffs groups with matches
 func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 
 	rows, err := models.DB.Query(queries.GetTournamentGroupsQuery(), id)
@@ -304,30 +245,53 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 
 		for r.Next() {
 			group := new(models.LadderGroup)
+			ss := new(models.GameResultSetScores)
 			err = r.Scan(&group.Order, &group.GameId, &group.GameName, &group.MaxStage,
 				&group.Stage, &group.HomePlayerId, &group.AwayPlayerId,
 				&group.WinnerId, &group.HomeScoreTotal, &group.AwayScoreTotal, &group.IsWalkover,
-				&group.HomePlayerDisplayName, &group.AwayPlayerDisplayName)
+				&group.HomePlayerName, &group.AwayPlayerName, &group.Level, &group.GroupName, &group.Announced,
+				&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
+				&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+
+			SetPlayoffGameScores(group, 1, ss.S1hp, ss.S1ap)
+			SetPlayoffGameScores(group, 2, ss.S2hp, ss.S2ap)
+			SetPlayoffGameScores(group, 3, ss.S3hp, ss.S3ap)
+			SetPlayoffGameScores(group, 4, ss.S4hp, ss.S4ap)
+			SetPlayoffGameScores(group, 5, ss.S5hp, ss.S5ap)
+			SetPlayoffGameScores(group, 6, ss.S6hp, ss.S6ap)
+			SetPlayoffGameScores(group, 7, ss.S7hp, ss.S7ap)
 
 			if group.HomePlayerId == 0 {
-				s := strings.Split(group.HomePlayerDisplayName, ".")
+				s := strings.Split(group.HomePlayerName, ".")
 				if s[0] == "W" {
-					group.HomePlayerDisplayName = "Winner, #" + s[1]
+					group.HomePlayerName = "Winner, #" + s[1]
 				} else if s[0] == "L" {
-					group.HomePlayerDisplayName = "Loser, #" + s[1]
+					group.HomePlayerName = "Loser, #" + s[1]
 				} else if s[0] == "G" {
-					group.HomePlayerDisplayName = "Group, #" + s[1]
+					group.HomePlayerName = "Group, #" + s[1]
 				}
 			}
 
 			if group.AwayPlayerId == 0 {
-				s := strings.Split(group.AwayPlayerDisplayName, ".")
+				s := strings.Split(group.AwayPlayerName, ".")
 				if s[0] == "W" {
-					group.AwayPlayerDisplayName = "Winner, #" + s[1]
+					group.AwayPlayerName = "Winner, #" + s[1]
 				} else if s[0] == "L" {
-					group.AwayPlayerDisplayName = "Loser, #" + s[1]
+					group.AwayPlayerName = "Loser, #" + s[1]
 				} else if s[0] == "G" {
-					group.AwayPlayerDisplayName = "Group, #" + s[1]
+					group.AwayPlayerName = "Group, #" + s[1]
+				}
+			}
+
+			group.Level = strings.Replace(group.Level, "|LEAGUE|", group.GroupName, -1)
+			if group.WinnerId == 0 {
+				group.Level = strings.Replace(group.Level, "|WINNER|", "Winner", -1)
+			} else {
+				if group.WinnerId == group.HomePlayerId {
+					group.Level = strings.Replace(group.Level, "|WINNER|", group.HomePlayerName, -1)
+				}
+				if group.WinnerId == group.AwayPlayerId {
+					group.Level = strings.Replace(group.Level, "|WINNER|", group.AwayPlayerName, -1)
 				}
 			}
 
@@ -340,4 +304,14 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 	}
 
 	return groups, nil
+}
+
+func SetPlayoffGameScores(g *models.LadderGroup, setNumber int, hs *int, as *int) {
+	if hs != nil && as != nil {
+		s := new(models.SetScore)
+		s.Set = setNumber
+		s.Home = *hs
+		s.Away = *as
+		g.SetScores = append(g.SetScores, *s)
+	}
 }

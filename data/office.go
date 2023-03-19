@@ -13,7 +13,7 @@ func GetOffices() ([]*models.Office, error) {
 	}
 	defer rows.Close()
 
-	offices := make([]*models.Office, 0)
+	ofs := make([]*models.Office, 0)
 	for rows.Next() {
 		o := new(models.Office)
 		err := rows.Scan(&o.ID, &o.Name, &o.IsDefault)
@@ -21,12 +21,12 @@ func GetOffices() ([]*models.Office, error) {
 			return nil, err
 		}
 
-		offices = append(offices, o)
+		ofs = append(ofs, o)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return offices, nil
+	return ofs, nil
 }

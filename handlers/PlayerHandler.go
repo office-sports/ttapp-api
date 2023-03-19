@@ -11,36 +11,21 @@ import (
 	"strconv"
 )
 
-func GetLeaders(writer http.ResponseWriter, request *http.Request) {
-	SetHeaders(writer)
-	md, err := data.GetLeaders()
-	if err == sql.ErrNoRows {
-		json.NewEncoder(writer).Encode(new(models.Leader))
-		return
-	} else if err != nil {
-		log.Println("Unable to get leaders data", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(writer).Encode(md)
-}
-
+// GetPlayers return all players
 func GetPlayers(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetPlayers()
 	if err == sql.ErrNoRows {
-		json.NewEncoder(writer).Encode(new(models.Office))
-		return
-	} else if err != nil {
-		log.Println("Unable to get players data", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		err := json.NewEncoder(writer).Encode(new(models.Player))
+		checkErrSimple(err)
 		return
 	}
+	checkErrHTTP(err, writer, "Unable to get players data")
 
 	json.NewEncoder(writer).Encode(md)
 }
 
+// GetPlayerById returns single player by given id
 func GetPlayerById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
@@ -50,14 +35,12 @@ func GetPlayerById(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	player, err := data.GetPlayerById(id)
-	if err != nil {
-		log.Println("Unable to get player", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get player")
+
 	json.NewEncoder(writer).Encode(player)
 }
 
+// GetPlayerResultsById returns array of player results for given player id
 func GetPlayerResultsById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
@@ -67,14 +50,12 @@ func GetPlayerResultsById(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	player, err := data.GetPlayerGamesById(id, 1)
-	if err != nil {
-		log.Println("Unable to get player results", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	checkErrHTTP(err, writer, "Unable to get player results")
+
 	json.NewEncoder(writer).Encode(player)
 }
 
+// GetPlayerScheduleById returns array of player scheduled games for given player id
 func GetPlayerScheduleById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, _ := strconv.Atoi(params["id"])
@@ -84,10 +65,20 @@ func GetPlayerScheduleById(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	player, err := data.GetPlayerGamesById(id, 0)
-	if err != nil {
-		log.Println("Unable to get player results", err)
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+	checkErrHTTP(err, writer, "Unable to get player schedule")
+
+	json.NewEncoder(writer).Encode(player)
+}
+
+// GetLeaders returns all-time leaders
+func GetLeaders(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	md, err := data.GetLeaders()
+	if err == sql.ErrNoRows {
+		json.NewEncoder(writer).Encode(new(models.Leader))
 		return
 	}
-	json.NewEncoder(writer).Encode(player)
+	checkErrHTTP(err, writer, "Unable to get leaders data")
+
+	json.NewEncoder(writer).Encode(md)
 }

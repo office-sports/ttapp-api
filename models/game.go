@@ -45,6 +45,9 @@ type GameResult struct {
 	CurrentSetId      *int       `json:"current_set_id"`
 	Announced         int        `json:"announced"`
 	TS                string     `json:"ts"`
+	Name              string     `json:"name"`
+	PlayOrder         int        `json:"play_order"`
+	Level             string     `json:"level"`
 	SetScores         []SetScore `json:"scores"`
 }
 

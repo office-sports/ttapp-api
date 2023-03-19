@@ -50,17 +50,21 @@ type Ladder struct {
 }
 
 type LadderGroup struct {
-	Order                 int    `json:"order"`
-	GameId                int    `json:"game_id"`
-	GameName              string `json:"game_name"`
-	MaxStage              int    `json:"max_stage"`
-	Stage                 int    `json:"stage"`
-	AwayPlayerId          int    `json:"away_player_id"`
-	HomePlayerId          int    `json:"home_player_id"`
-	WinnerId              int    `json:"winner_id"`
-	HomeScoreTotal        int    `json:"home_score_total"`
-	AwayScoreTotal        int    `json:"away_score_total"`
-	IsWalkover            int    `json:"is_walkover"`
-	HomePlayerDisplayName string `json:"home_player_display_name"`
-	AwayPlayerDisplayName string `json:"away_player_display_name"`
+	Order          int        `json:"order"`
+	GameId         int        `json:"game_id"`
+	GameName       string     `json:"game_name"`
+	MaxStage       int        `json:"max_stage"`
+	Stage          int        `json:"stage"`
+	AwayPlayerId   int        `json:"away_player_id"`
+	HomePlayerId   int        `json:"home_player_id"`
+	WinnerId       int        `json:"winner_id"`
+	HomeScoreTotal int        `json:"home_score_total"`
+	AwayScoreTotal int        `json:"away_score_total"`
+	IsWalkover     int        `json:"is_walkover"`
+	HomePlayerName string     `json:"home_player_name"`
+	AwayPlayerName string     `json:"away_player_name"`
+	Level          string     `json:"level"`
+	GroupName      string     `json:"group_name"`
+	Announced      int        `json:"announced"`
+	SetScores      []SetScore `json:"scores"`
 }

@@ -1,5 +1,55 @@
 package queries
 
+func GetTournamentsQuery() string {
+	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
+			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
+			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
+			from tournament t
+			left join game g on g.tournament_id = t.id
+			left join (
+			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
+                from scores s
+                join game g on s.game_id = g.id
+                group by g.tournament_id
+            ) s on s.tid = t.id			
+			where t.is_official = 1
+			group by t.id, t.start_time
+			order by t.start_time desc`
+}
+
+func GetLiveTournamentsQuery() string {
+	return `select t.id, t.name, t.is_finished, t.is_playoffs, t.start_time, 
+	   IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
+       t.office_id,
+			count(distinct (g.home_player_id)), count(g.id),
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
+			from tournament t
+			left join game g on g.tournament_id = t.id
+			left join (
+			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
+                from scores s
+                join game g on s.game_id = g.id
+                group by g.tournament_id
+            ) s on s.tid = t.id				
+			where t.is_official = 1 and t.is_finished = 0
+			group by t.id
+			order by t.start_time asc`
+}
+
+func GetTournamentByIdQuery() string {
+	return `
+			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
+			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
+			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			from tournament t
+			left join game g on g.tournament_id = t.id
+			where t.is_official = 1 and t.id = ?
+			group by t.id, t.start_time
+			order by t.start_time desc`
+}
+
 func GetBaseTournamentScheduleQuery() string {
 	return `select
 			g.tournament_id                                         as tournamentId,
@@ -66,13 +116,28 @@ func GetTournamentGroupQuery() string {
 	return `select g.play_order as matchNumber, g.id, g.name, 4 as maxStage,
 			g.stage, g.home_player_id as hpid, g.away_player_id as apid, g.winner_id,
 			g.home_score as homeScoreTotal, g.away_score as awayScoreTotal, g.is_walkover,
-			if (g.home_player_id, p1.name, g.playoff_home_player_id) as homePlayerDisplayName, 
-			if (g.away_player_id, p2.name, g.playoff_away_player_id) as awayPlayerDisplayName  
+			if (g.home_player_id, p1.name, g.playoff_home_player_id) as homePlayerName, 
+			if (g.away_player_id, p2.name, g.playoff_away_player_id) as awayPlayerName,
+			g.level, l.name, g.announced,
+			s1.home_points as s1hp, s1.away_points s1ap,
+			s2.home_points as s2hp, s2.away_points s2ap,
+			s3.home_points as s3hp, s3.away_points s3ap,
+			s4.home_points as s4hp, s4.away_points s4ap,
+			s5.home_points as s5hp, s5.away_points s5ap,
+			s6.home_points as s5hp, s6.away_points s6ap,
+			s7.home_points as s5hp, s7.away_points s7ap
 			from game g 
 			left join player p1 on p1.id = g.home_player_id 
 			left join player p2 on p2.id = g.away_player_id 
 			join tournament t on t.id = g.tournament_id and t.is_playoffs = 1
 			join tournament_group l on l.id = g.tournament_group_id 
+				left join scores s1 on s1.game_id = g.id and s1.set_number = 1
+				left join scores s2 on s2.game_id = g.id and s2.set_number = 2
+				left join scores s3 on s3.game_id = g.id and s3.set_number = 3
+				left join scores s4 on s4.game_id = g.id and s4.set_number = 4
+				left join scores s5 on s5.game_id = g.id and s5.set_number = 5
+				left join scores s6 on s6.game_id = g.id and s6.set_number = 6
+				left join scores s7 on s7.game_id = g.id and s7.set_number = 7
 			where t.id = ? and l.id = ?
 			order by g.stage asc, g.play_order desc`
 }

@@ -1,5 +1,51 @@
 package queries
 
+func UpdateServerQuery() string {
+	return `UPDATE game SET server_id = ? WHERE id = ?`
+}
+
+func FinishGameQuery() string {
+	return `update game g set winner_id = ?, current_set = 1, is_finished = 1, date_played = now() where g.id = ?`
+}
+
+func UpdateNextPlayoffGameHomePlayer() string {
+	return `update game g set home_player_id = ? where playoff_home_player_id = ?`
+}
+
+func UpdateNextPlayoffGameAwayPlayer() string {
+	return `update game g set away_player_id = ? where playoff_away_player_id = ?`
+}
+
+func GetLiveGamesQuery() string {
+	return `select
+		g.id, g.current_set, p1.name as homePlayerName, p2.name as awayPlayerName,
+		if(t.is_playoffs = 1, 'playoffs', 'group') as phase, tg.name
+		from game g
+			join tournament t on g.tournament_id = t.id
+			join tournament_group tg on g.tournament_group_id = tg.id
+			join player p1 on p1.id = g.home_player_id
+			join player p2 on p2.id = g.away_player_id
+			join scores s on s.game_id = g.id
+	where g.is_finished = 0
+	and g.is_abandoned = 0
+	having count(s.id > 0)`
+}
+
+func GetTournamentLiveGamesQuery() string {
+	return `select
+		g.id, g.current_set, p1.name as homePlayerName, p2.name as awayPlayerName,
+		if(t.is_playoffs = 1, 'playoffs', 'group') as phase, tg.name
+		from game g
+			join tournament t on g.tournament_id = t.id
+			join tournament_group tg on g.tournament_group_id = tg.id
+			join player p1 on p1.id = g.home_player_id
+			join player p2 on p2.id = g.away_player_id
+	where g.is_finished = 0
+	and g.is_abandoned = 0
+	and g.tournament_id = ?
+	and g.announced = 1`
+}
+
 func GetGameModesQuery() string {
 	return `SELECT
 			t.id, t.name, t.short_name, t.wins_required, t.max_sets
@@ -102,19 +148,4 @@ func GetEloLastCache() string {
             and ? IN (g.home_player_id, g.away_player_id)
             and g.id != ?
             order by g.date_played desc limit 1`
-}
-
-func GetLiveGamesQuery() string {
-	return `select
-		g.id, g.current_set, p1.name as homePlayerName, p2.name as awayPlayerName,
-		if(t.is_playoffs = 1, 'playoffs', 'group') as phase, tg.name
-		from game g
-			join tournament t on g.tournament_id = t.id
-			join tournament_group tg on g.tournament_group_id = tg.id
-			join player p1 on p1.id = g.home_player_id
-			join player p2 on p2.id = g.away_player_id
-			join scores s on s.game_id = g.id
-	where g.is_finished = 0
-	and g.is_abandoned = 0
-	having count(s.id > 0)`
 }
