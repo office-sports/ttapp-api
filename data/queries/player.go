@@ -55,10 +55,10 @@ func GetGameWithScoresQuery() string {
 		tg.name as groupName, 
 		g.date_of_match as dateOfMatch, 
 		g.date_played as datePlayed,
-		p1.id as homePlayerId, 
-		p2.id awayPlayerId, 
-    	p1.name homePlayerName, 
-    	p2.name as awayPlayerName,
+		coalesce(p1.id, 0) as homePlayerId,
+		coalesce(p2.id, 0) as  awayPlayerId,
+    	coalesce(p1.name, g.playoff_home_player_id) homePlayerName,
+    	coalesce(p2.name, g.playoff_away_player_id) awayPlayerName,
     	g.winner_id as winnerId, 
 		g.home_score as homeScoreTotal, 
 		g.away_score as awayScoreTotal,
@@ -86,8 +86,8 @@ func GetGameWithScoresQuery() string {
 		coalesce(g.level, "") as level
 		from game g
 		join game_mode gm on gm.id = g.game_mode_id
-		join player p1 on p1.id = g.home_player_id
-		join player p2 on p2.id = g.away_player_id
+		left join player p1 on p1.id = g.home_player_id
+		left join player p2 on p2.id = g.away_player_id
 		join tournament_group tg on tg.id = g.tournament_group_id
 		left join scores s on s.set_number = g.current_set and s.game_id = g.id
 		left join scores s1 on s1.game_id = g.id and s1.set_number = 1
