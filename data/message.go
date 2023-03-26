@@ -338,18 +338,30 @@ func getSpotsMessage(group *models.GroupInfo) string {
 
 	// count secured spots
 	securedSpots := 0
+	securedSpotsPlayoffs := 0
 	var securedSpotsPlayers []string
+	var securedSpotsPlayoffsPlayers []string
 	securedSpotsPlayersNames := ""
-	for _, p := range group.PositionCandidates {
+	securedSpotsPlayoffsPlayersNames := ""
+	for position, p := range group.PositionCandidates {
 		if p.Secured == 1 {
 			securedSpots++
 			if len(p.PlayerNames) == 1 {
 				securedSpotsPlayers = append(securedSpotsPlayers, p.PlayerNames[0])
 			}
+
+			// check if this is a playoffs spot
+			if position <= group.GroupPromotions {
+				securedSpotsPlayoffs++
+				if len(p.PlayerNames) == 1 {
+					securedSpotsPlayoffsPlayers = append(securedSpotsPlayoffsPlayers, p.PlayerNames[0])
+				}
+			}
 		}
 	}
 
 	securedSpotsPlayersNames = strings.Join(securedSpotsPlayers, ", ")
+	securedSpotsPlayoffsPlayersNames = strings.Join(securedSpotsPlayoffsPlayers, ", ")
 
 	msg := "We'll have " + digits[group.GroupPromotions] + " players advancing to playoffs from |GROUP|. "
 	msg = strings.Replace(msg, "|GROUP|", group.Name, -1)
@@ -358,11 +370,22 @@ func getSpotsMessage(group *models.GroupInfo) string {
 		msg += getRandomMessage(noSpots)
 	} else {
 		if securedSpots == 1 {
-			msg += "There is only " + digits[securedSpots] + " secured spot for playoffs by far. Congratulations |=" +
+			msg += "There is only " + digits[securedSpots] + " final position in the table so far: |=" +
 				securedSpotsPlayersNames + "=|. "
 		} else {
-			msg += "There are already " + digits[securedSpots] + " secured spots for playoffs. Congratulations |=" +
+			msg += "There are " + digits[securedSpots] + " final positions in the table for |=" +
 				securedSpotsPlayersNames + "=|. "
+
+			if securedSpotsPlayoffs > 0 {
+				msg += strings.Title(strings.ToLower(digits[securedSpotsPlayoffs])) +
+					" of those advance to playoffs"
+				if securedSpots != securedSpotsPlayoffs {
+					msg += ", a group consisting of |=" + securedSpotsPlayoffsPlayersNames +
+						"=|"
+
+				}
+				msg += ". Congratulations! "
+			}
 		}
 	}
 
