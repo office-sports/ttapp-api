@@ -358,27 +358,32 @@ func getSpotsMessage(group *models.GroupInfo) string {
 		msg += getRandomMessage(noSpots)
 	} else {
 		if securedSpots == 1 {
-			msg += "There is only " + digits[securedSpots] + " secured spot for playoffs by far. Congratulations " +
-				securedSpotsPlayersNames + ". "
+			msg += "There is only " + digits[securedSpots] + " secured spot for playoffs by far. Congratulations |=" +
+				securedSpotsPlayersNames + "=|. "
 		} else {
-			msg += "There are already " + digits[securedSpots] + " secured spots for playoffs. Congratulations " +
-				securedSpotsPlayersNames + ". "
+			msg += "There are already " + digits[securedSpots] + " secured spots for playoffs. Congratulations |=" +
+				securedSpotsPlayersNames + "=|. "
 		}
 	}
 
 	noPromo := []string{
 		"Despite their best efforts, |PLAYERS| will not be advancing to the playoffs and will be fighting for |POSITION| position in the table. ",
-		"It's been a tough season for |PLAYERS| and unfortunately those competitors will not be moving on to the playoffs, but instead will be battling for |POSITION| position in the standings. ",
-		"Although falling short of making the playoffs, |PLAYERS| are determined to fight for |POSITION| position in the table. ",
+		"It's been a tough season for |PLAYERS| and unfortunately |PLURAL_COMPETITORS| will not be moving on to the playoffs, but instead will be battling for |POSITION| position in the standings. ",
+		"Although falling short of making the playoffs, |PLAYERS| |PLURAL_BE| determined to fight for |POSITION| position in the table. ",
 		"It's a disappointing outcome for |PLAYERS|, who will not be advancing to the playoffs, and instead will be fighting for |POSITION| position in the standings. ",
-		"While not having made it to the playoffs this season, |PLAYERS| are not giving up and will be competing fiercely to take |POSITION| position in the table. "}
+		"While not having made it to the playoffs this season, |PLAYERS| |PLURAL_BE| not giving up and will be competing fiercely to take |POSITION| position in the table. "}
 
 	promo := []string{
-		"|PLAYERS| are in a tough battle for |POSITION| position in the table, and are determined to secure their spot in the playoffs. ",
-		"With just a few games left in the season, these players are fighting for a promotion to the playoffs from |POSITION| position in the table: |PLAYERS|. ",
-		"|PLAYERS| are still very much in the playoff race and are fighting hard to move up the table to secure |POSITION| position. ",
-		"It's a close race for |POSITION| position, but |PLAYERS| are not backing down and are doing everything they can to secure their spot in the postseason. ",
-		"The competition is fierce, but |PLAYERS| are up for the challenge and are focused on fighting for promotion to the playoffs from |POSITION| position in the standings. "}
+		"|PLAYERS| |PLURAL_BE| in a tough battle for |POSITION| position in the table, and |PLURAL_BE| determined to secure their spot in the playoffs. ",
+		"With just a few games left in the season, |PLAYERS| |PLURAL_BE| fighting for a promotion to the playoffs from |POSITION| position in the table. ",
+		"|PLAYERS| |PLURAL_BE| still very much in the playoff race and |PLURAL_BE| fighting hard to move up the table to secure |POSITION| position. ",
+		"It's a close race for |POSITION| position, but |PLAYERS| |PLURAL_BE| not backing down and |PLURAL_BE| doing everything possible to secure the spot in the postseason. ",
+		"The competition is fierce, but |PLAYERS| |PLURAL_BE| up for the challenge and |PLURAL_BE| focused on fighting for promotion to the playoffs from |POSITION| position in the standings. "}
+
+	maxPos := []string{
+		"With just a few games left in the season, this player surely will finish at least in |POSITION_MIN| position. ",
+		"This player will finish no lower than |POSITION_MIN| position in the final standings. ",
+		"It's certain that this player will finish placed at least |POSITION_MIN|. "}
 
 	for position, p := range group.PositionCandidates {
 		if p.Secured != 0 {
@@ -387,6 +392,20 @@ func getSpotsMessage(group *models.GroupInfo) string {
 
 		if position <= group.GroupPromotions {
 			msg += getRandomMessage(promo)
+
+			if len(p.PlayerNames) == 1 {
+				msg = strings.Replace(msg, "|PLURAL_BE|", "is", -1)
+				msg = strings.Replace(msg, "|PLURAL_COMPETITORS|", "this competitor", -1)
+
+				// get minimum position player can end up taking
+				psi := getPlayerSituationInfo(strings.Join(p.PlayerNames, ""), group.PlayerInfo)
+				msgMin := getRandomMessage(maxPos)
+				msg += strings.Replace(msgMin, "|POSITION_MIN|", digitsOrder[psi.PositionMin], -1)
+			} else {
+				msg = strings.Replace(msg, "|PLURAL_BE|", "are", -1)
+				msg = strings.Replace(msg, "|PLURAL_COMPETITORS|", "these competitors", -1)
+			}
+
 			msg = strings.Replace(msg, "|PLAYERS|", "|="+strings.Join(p.PlayerNames, ", ")+"=|", -1)
 			msg = strings.Replace(msg, "|POSITION|", digitsOrder[position], -1)
 		} else {
@@ -394,8 +413,11 @@ func getSpotsMessage(group *models.GroupInfo) string {
 			msg = strings.Replace(msg, "|PLAYERS|", "|="+strings.Join(p.PlayerNames, ", ")+"=|", -1)
 			msg = strings.Replace(msg, "|POSITION|", digitsOrder[position], -1)
 			if len(p.PlayerNames) == 1 {
-				msg = strings.Replace(msg, "are", "is", -1)
-				msg = strings.Replace(msg, "those competitors", "this competitor", -1)
+				msg = strings.Replace(msg, "|PLURAL_BE|", "is", -1)
+				msg = strings.Replace(msg, "|PLURAL_COMPETITORS|", "this competitor", -1)
+			} else {
+				msg = strings.Replace(msg, "|PLURAL_BE|", "are", -1)
+				msg = strings.Replace(msg, "|PLURAL_COMPETITORS|", "these competitors", -1)
 			}
 		}
 	}
@@ -403,9 +425,9 @@ func getSpotsMessage(group *models.GroupInfo) string {
 	return msg
 }
 
-func getPlayerSituationInfo(pid int, playerInfo []models.PlayerInfo) *models.PlayerInfo {
+func getPlayerSituationInfo(name string, playerInfo []models.PlayerInfo) *models.PlayerInfo {
 	for _, p := range playerInfo {
-		if p.Id == pid {
+		if p.Name == name {
 			return &p
 		}
 	}

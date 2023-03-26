@@ -214,6 +214,9 @@ func GetTournamentGames(tid int) ([]*models.GameResult, error) {
 }
 
 func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
+	// TODO - fetch this value from db, indicated match number of sets per tournament
+	var setsPerGame float64 = 3.0
+
 	rows, err := models.DB.Query(queries.GetTournamentStandingsQuery(), id, id, id, id)
 
 	if err != nil {
@@ -259,8 +262,19 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	for i, group := range groups {
 		for j, player := range group.Players {
 			player.GamesRemaining = len(group.Players) - player.Played - 1
-			player.PointsPotentialMin = player.Points
-			player.PointsPotentialMax = player.Points + player.GamesRemaining*2
+
+			player.PointsPotentialMin = float64(player.Points) +
+				float64(player.SetsDiff)/100
+			if player.GamesRemaining == 0 {
+				player.PointsPotentialMax =
+					float64(player.Points+player.GamesRemaining*2) +
+						float64(player.SetsDiff)/100
+			} else {
+				player.PointsPotentialMax =
+					float64(player.Points+player.GamesRemaining*2) +
+						float64(player.GamesRemaining)*(setsPerGame/100)
+			}
+
 			groups[i].Players[j] = player
 		}
 	}
@@ -284,6 +298,7 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 }
 
 func GetPreviousTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
+	var setsPerGame float64 = 3.0
 	rows, err := models.DB.Query(queries.GetTournamentStandingsDaysQuery(), id, id, id, id)
 
 	if err != nil {
@@ -329,8 +344,19 @@ func GetPreviousTournamentStandingsById(id int) (map[int]*models.TournamentGroup
 	for i, group := range groups {
 		for j, player := range group.Players {
 			player.GamesRemaining = len(group.Players) - player.Played - 1
-			player.PointsPotentialMin = player.Points
-			player.PointsPotentialMax = player.Points + player.GamesRemaining*2
+
+			player.PointsPotentialMin = float64(player.Points) +
+				float64(player.SetsDiff)/100
+			if player.GamesRemaining == 0 {
+				player.PointsPotentialMax =
+					float64(player.Points+player.GamesRemaining*2) +
+						float64(player.SetsDiff)/100
+			} else {
+				player.PointsPotentialMax =
+					float64(player.Points+player.GamesRemaining*2) +
+						float64(player.GamesRemaining)*(setsPerGame/100)
+			}
+
 			groups[i].Players[j] = player
 		}
 	}
@@ -385,6 +411,8 @@ func GetTournamentInfo(id int) ([]*models.GroupInfo, error) {
 			playerInfo.PositionCurrent = player.Pos
 			playerInfo.PositionPrevious = previousPlayerData.Pos
 			playerInfo.PositionMovement = playerInfo.PositionCurrent - playerInfo.PositionPrevious
+			playerInfo.PositionMin = player.PositionMin
+			playerInfo.PositionMax = player.PositionMax
 
 			if info.PositionCandidates == nil {
 				pc := make(map[int]*models.PositionCandidate)
