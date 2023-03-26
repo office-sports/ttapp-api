@@ -170,6 +170,49 @@ func GetTournamentResults(tid int, num int) ([]*models.GameResult, error) {
 	return results, nil
 }
 
+// GetTournamentGames returns array of all games for requested tournament id
+func GetTournamentGames(tid int) ([]*models.GameResult, error) {
+	q := queries.GetTournamentGamesQuery() +
+		` WHERE g.tournament_id = ? group by g.id order by g.id ASC`
+
+	rows, err := models.DB.Query(q, tid)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]*models.GameResult, 0)
+	for rows.Next() {
+		g := new(models.GameResult)
+		ss := new(models.GameResultSetScores)
+		err := rows.Scan(&g.MatchId, &g.GroupName, &g.TournamentId, &g.OfficeId, &g.DateOfMatch, &g.DatePlayed,
+			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName, &g.WinnerId, &g.HomeScoreTotal,
+			&g.AwayScoreTotal, &g.IsWalkover, &g.HomeElo, &g.NewHomeElo, &g.AwayElo, &g.NewAwayElo,
+			&g.HomeEloDiff, &g.AwayEloDiff, &g.HasPoints, &ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap,
+			&ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap, &ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, g)
+
+		SetGameResultSetScores(g, 1, ss.S1hp, ss.S1ap)
+		SetGameResultSetScores(g, 2, ss.S2hp, ss.S2ap)
+		SetGameResultSetScores(g, 3, ss.S3hp, ss.S3ap)
+		SetGameResultSetScores(g, 4, ss.S4hp, ss.S4ap)
+		SetGameResultSetScores(g, 5, ss.S5hp, ss.S5ap)
+		SetGameResultSetScores(g, 6, ss.S6hp, ss.S6ap)
+		SetGameResultSetScores(g, 7, ss.S7hp, ss.S7ap)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
 	rows, err := models.DB.Query(queries.GetTournamentStandingsQuery(), id, id, id, id)
 
@@ -183,7 +226,7 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 		p := new(models.GroupStandingsPlayer)
 		err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
 			&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
-			&p.GroupId, &p.GroupName, &p.GroupAbbreviation)
+			&p.GroupId, &p.GroupName, &p.GroupAbbreviation, &p.GroupPromotions)
 		if err != nil {
 			return nil, err
 		}
@@ -202,6 +245,7 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 			gr.Id = gid
 			gr.Name = gp.GroupName
 			gr.Abbreviation = gp.GroupAbbreviation
+			gr.GroupPromotions = gp.GroupPromotions
 			gr.Players = append(gr.Players, *gp)
 			groups[gid] = gr
 		} else {
@@ -212,6 +256,26 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 		}
 	}
 
+	for i, group := range groups {
+		for j, player := range group.Players {
+			player.GamesRemaining = len(group.Players) - player.Played - 1
+			player.PointsPotentialMin = player.Points
+			player.PointsPotentialMax = player.Points + player.GamesRemaining*2
+			groups[i].Players[j] = player
+		}
+	}
+
+	for i, group := range groups {
+		for j, player := range group.Players {
+			// how many player have < this one's potential min = player's min position
+			pc := getGroupsPointsPotentialCount(group, player, false)
+			player.PositionMin = len(group.Players) - pc
+			pc = getGroupsPointsPotentialCount(group, player, true)
+			player.PositionMax = len(group.Players) - pc
+			groups[i].Players[j] = player
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -219,9 +283,216 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	return groups, nil
 }
 
+func GetPreviousTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
+	rows, err := models.DB.Query(queries.GetTournamentStandingsDaysQuery(), id, id, id, id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]*models.GroupStandingsPlayer, 0)
+	for rows.Next() {
+		p := new(models.GroupStandingsPlayer)
+		err := rows.Scan(&p.Pos, &p.PosColor, &p.PlayerId, &p.PlayerName, &p.Played, &p.Wins, &p.Draws, &p.Losses,
+			&p.Points, &p.SetsFor, &p.SetsAgainst, &p.SetsDiff, &p.RalliesFor, &p.RalliesAgainst, &p.RalliesDiff,
+			&p.GroupId, &p.GroupName, &p.GroupAbbreviation, &p.GroupPromotions)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, p)
+	}
+
+	groups := make(map[int]*models.TournamentGroup)
+	for _, gp := range results {
+		tmp := strings.Split(gp.PosColor, ".")
+		gid := gp.GroupId
+		if groups[gid] == nil {
+			gp.Pos = 1
+			gp.PosColor = tmp[gp.Pos-1]
+			gr := new(models.TournamentGroup)
+			gr.Id = gid
+			gr.Name = gp.GroupName
+			gr.Abbreviation = gp.GroupAbbreviation
+			gr.GroupPromotions = gp.GroupPromotions
+			gr.Players = append(gr.Players, *gp)
+			groups[gid] = gr
+		} else {
+			gr := groups[gid]
+			gp.Pos = len(gr.Players) + 1
+			gp.PosColor = tmp[gp.Pos-1]
+			gr.Players = append(gr.Players, *gp)
+		}
+	}
+
+	for i, group := range groups {
+		for j, player := range group.Players {
+			player.GamesRemaining = len(group.Players) - player.Played - 1
+			player.PointsPotentialMin = player.Points
+			player.PointsPotentialMax = player.Points + player.GamesRemaining*2
+			groups[i].Players[j] = player
+		}
+	}
+
+	for i, group := range groups {
+		for j, player := range group.Players {
+			// how many player have < this one's potential min = player's min position
+			pc := getGroupsPointsPotentialCount(group, player, false)
+			player.PositionMin = len(group.Players) - pc
+			pc = getGroupsPointsPotentialCount(group, player, true)
+			player.PositionMax = len(group.Players) - pc
+			groups[i].Players[j] = player
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return groups, nil
+}
+
+func GetTournamentInfo(id int) ([]*models.GroupInfo, error) {
+	currentStandings, _ := GetTournamentStandingsById(id)
+	previousStandings, _ := GetPreviousTournamentStandingsById(id)
+
+	recap := make([]*models.GroupInfo, 0)
+
+	for gid, group := range currentStandings {
+		info := new(models.GroupInfo)
+
+		info.TopDrop = 0
+		info.TopClimb = 0
+		info.TopDropPlayerName = ""
+		info.TopClimbPlayerName = ""
+
+		cPlayed := 0
+		pPlayed := 0
+		cRemaining := 0
+
+		for _, player := range group.Players {
+			playerInfo := new(models.PlayerInfo)
+
+			previousPlayerData := GetPreviousStandingsPlayerData(previousStandings[gid], player.PlayerId)
+
+			cPlayed += player.Played
+			pPlayed += previousPlayerData.Played
+			cRemaining += player.GamesRemaining
+
+			playerInfo.Id = player.PlayerId
+			playerInfo.Name = player.PlayerName
+			playerInfo.PositionCurrent = player.Pos
+			playerInfo.PositionPrevious = previousPlayerData.Pos
+			playerInfo.PositionMovement = playerInfo.PositionCurrent - playerInfo.PositionPrevious
+
+			if info.PositionCandidates == nil {
+				pc := make(map[int]*models.PositionCandidate)
+				info.PositionCandidates = pc
+			}
+
+			_, positionExists := info.PositionCandidates[player.PositionMax]
+			if positionExists {
+				candidates := info.PositionCandidates[player.PositionMax]
+				candidates.PlayerNames = append(candidates.PlayerNames, player.PlayerName)
+				info.PositionCandidates[player.PositionMax] = candidates
+			} else {
+				//candidatesMap := make(map[int]*models.PositionCandidate, 0)
+				candidate := new(models.PositionCandidate)
+				candidate.PlayerNames = append(candidate.PlayerNames, player.PlayerName)
+				if player.PositionMin == player.PositionMax {
+					candidate.Secured = 1
+				}
+
+				info.PositionCandidates[player.PositionMax] = candidate
+			}
+
+			if playerInfo.PositionMovement > 0 {
+				info.PositionsDown += playerInfo.PositionMovement
+				if info.TopDrop == 0 {
+					info.TopDrop = playerInfo.PositionMovement
+					info.TopDropPlayerName = playerInfo.Name
+				} else {
+					if playerInfo.PositionMovement > info.TopDrop {
+						info.TopDrop = playerInfo.PositionMovement
+						info.TopDropPlayerName = playerInfo.Name
+					} else if playerInfo.PositionMovement == info.TopDrop {
+						info.TopDropPlayerName += ", " + playerInfo.Name
+					}
+				}
+			}
+
+			if playerInfo.PositionMovement == 0 {
+				info.PositionsStay += 1
+			}
+
+			if playerInfo.PositionMovement < 0 {
+				move := -1 * playerInfo.PositionMovement
+				info.PositionsUp += move
+				if info.TopClimb == 0 {
+					info.TopClimb = move
+					info.TopClimbPlayerName = playerInfo.Name
+				} else {
+					if move > info.TopClimb {
+						info.TopClimb = move
+						info.TopClimbPlayerName = playerInfo.Name
+					} else if move == info.TopClimb {
+						info.TopClimbPlayerName += ", " + playerInfo.Name
+					}
+				}
+			}
+
+			info.PlayerInfo = append(info.PlayerInfo, *playerInfo)
+		}
+
+		info.Id = gid
+		info.Name = group.Name
+		info.GamesPlayed = (cPlayed - pPlayed) / 2
+		info.GamesRemaining = cRemaining / 2
+		info.GroupPromotions = group.GroupPromotions
+
+		recap = append(recap, info)
+	}
+
+	CreateRecapMessage(recap)
+
+	return recap, nil
+}
+
+func GetPreviousStandingsPlayerData(tg *models.TournamentGroup, pid int) *models.GroupStandingsPlayer {
+	for _, player := range tg.Players {
+		if player.PlayerId == pid {
+			return &player
+		}
+	}
+
+	return nil
+}
+
+func getGroupsPointsPotentialCount(group *models.TournamentGroup, p models.GroupStandingsPlayer, c bool) int {
+	count := 0
+	pid := p.PlayerId
+	for _, player := range group.Players {
+		if player.PlayerId != pid {
+			if c == true {
+				// we're checking for greater values
+				if player.PointsPotentialMin < p.PointsPotentialMax {
+					count++
+				}
+			} else {
+				// we're checking for smaller values
+				if player.PointsPotentialMax < p.PointsPotentialMin {
+					count++
+				}
+			}
+		}
+	}
+
+	return count
+}
+
 // GetTournamentLadders returns array of playoffs groups with matches
 func GetTournamentLadders(id int) ([]*models.Ladder, error) {
-
 	rows, err := models.DB.Query(queries.GetTournamentGroupsQuery(), id)
 
 	if err != nil {
@@ -243,6 +514,7 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 			return nil, err
 		}
 
+		lastGameOrder := 0
 		for r.Next() {
 			group := new(models.LadderGroup)
 			ss := new(models.GameResultSetScores)
@@ -250,6 +522,7 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 				&group.Stage, &group.HomePlayerId, &group.AwayPlayerId,
 				&group.WinnerId, &group.HomeScoreTotal, &group.AwayScoreTotal, &group.IsWalkover,
 				&group.HomePlayerName, &group.AwayPlayerName, &group.Level, &group.GroupName, &group.Announced,
+				&group.IsFinalGame,
 				&ss.S1hp, &ss.S1ap, &ss.S2hp, &ss.S2ap, &ss.S3hp, &ss.S3ap, &ss.S4hp, &ss.S4ap, &ss.S5hp, &ss.S5ap,
 				&ss.S6hp, &ss.S6ap, &ss.S7hp, &ss.S7ap)
 
@@ -260,6 +533,11 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 			SetPlayoffGameScores(group, 5, ss.S5hp, ss.S5ap)
 			SetPlayoffGameScores(group, 6, ss.S6hp, ss.S6ap)
 			SetPlayoffGameScores(group, 7, ss.S7hp, ss.S7ap)
+
+			// set is final game value
+			if group.Stage == group.MaxStage && group.Order > lastGameOrder {
+				group.IsFinalGame = 1
+			}
 
 			if group.HomePlayerId == 0 {
 				s := strings.Split(group.HomePlayerName, ".")
@@ -283,17 +561,24 @@ func GetTournamentLadders(id int) ([]*models.Ladder, error) {
 				}
 			}
 
-			group.Level = strings.Replace(group.Level, "|LEAGUE|", group.GroupName, -1)
+			if group.Level != "" {
+				group.Level = strings.Replace(group.Level, "|LEAGUE|", group.GroupName, -1)
+			}
 			if group.WinnerId == 0 {
 				group.Level = strings.Replace(group.Level, "|WINNER|", "Winner", -1)
+				group.Level = strings.Replace(group.Level, "|LOSER|", "Loser", -1)
 			} else {
 				if group.WinnerId == group.HomePlayerId {
 					group.Level = strings.Replace(group.Level, "|WINNER|", group.HomePlayerName, -1)
+					group.Level = strings.Replace(group.Level, "|LOSER|", group.AwayPlayerName, -1)
 				}
 				if group.WinnerId == group.AwayPlayerId {
 					group.Level = strings.Replace(group.Level, "|WINNER|", group.AwayPlayerName, -1)
+					group.Level = strings.Replace(group.Level, "|LOSER|", group.HomePlayerName, -1)
 				}
 			}
+
+			lastGameOrder = group.Order
 
 			l.LadderGroup = append(l.LadderGroup, *group)
 		}

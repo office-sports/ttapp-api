@@ -16,31 +16,38 @@ type Tournament struct {
 }
 
 type TournamentGroup struct {
-	Id           int                    `json:"group_id"`
-	Name         string                 `json:"group_name"`
-	Abbreviation string                 `json:"group_abbreviation"`
-	Players      []GroupStandingsPlayer `json:"players"`
+	Id              int                    `json:"group_id"`
+	Name            string                 `json:"group_name"`
+	Abbreviation    string                 `json:"group_abbreviation"`
+	GroupPromotions int                    `json:"group_promotions"`
+	Players         []GroupStandingsPlayer `json:"players"`
 }
 
 type GroupStandingsPlayer struct {
-	Pos               int    `json:"pos"`
-	PosColor          string `json:"pos_color"`
-	PlayerId          int    `json:"player_id"`
-	PlayerName        string `json:"player_name"`
-	Played            int    `json:"played"`
-	Wins              int    `json:"wins"`
-	Draws             int    `json:"draws"`
-	Losses            int    `json:"losses"`
-	Points            int    `json:"points"`
-	SetsFor           int    `json:"sets_for"`
-	SetsAgainst       int    `json:"sets_against"`
-	SetsDiff          int    `json:"sets_diff"`
-	RalliesFor        *int   `json:"rallies_for"`
-	RalliesAgainst    *int   `json:"rallies_against"`
-	RalliesDiff       *int   `json:"rallies_diff"`
-	GroupId           int    `json:"group_id"`
-	GroupName         string `json:"group_name"`
-	GroupAbbreviation string `json:"group_abbreviation"`
+	Pos                int    `json:"pos"`
+	PosColor           string `json:"pos_color"`
+	PlayerId           int    `json:"player_id"`
+	PlayerName         string `json:"player_name"`
+	Played             int    `json:"played"`
+	Wins               int    `json:"wins"`
+	Draws              int    `json:"draws"`
+	Losses             int    `json:"losses"`
+	Points             int    `json:"points"`
+	SetsFor            int    `json:"sets_for"`
+	SetsAgainst        int    `json:"sets_against"`
+	SetsDiff           int    `json:"sets_diff"`
+	RalliesFor         *int   `json:"rallies_for"`
+	RalliesAgainst     *int   `json:"rallies_against"`
+	RalliesDiff        *int   `json:"rallies_diff"`
+	GroupId            int    `json:"group_id"`
+	GroupName          string `json:"group_name"`
+	GroupAbbreviation  string `json:"group_abbreviation"`
+	GroupPromotions    int    `json:"group_promotions"`
+	GamesRemaining     int    `json:"games_remaining"`
+	PointsPotentialMin int    `json:"points_potential_min"`
+	PointsPotentialMax int    `json:"points_potential_max"`
+	PositionMin        int    `json:"position_min"`
+	PositionMax        int    `json:"position_max"`
 }
 
 type Ladder struct {
@@ -66,5 +73,38 @@ type LadderGroup struct {
 	Level          string     `json:"level"`
 	GroupName      string     `json:"group_name"`
 	Announced      int        `json:"announced"`
+	IsFinalGame    int        `json:"is_final_game"`
 	SetScores      []SetScore `json:"scores"`
+}
+
+type GroupInfo struct {
+	Id                 int                        `json:"id"`
+	Name               string                     `json:"name"`
+	GroupPromotions    int                        `json:"group_promotions"`
+	GamesPlayed        int                        `json:"games_played"`
+	GamesRemaining     int                        `json:"games_remaining"`
+	PositionsUp        int                        `json:"positions_up"`
+	PositionsStay      int                        `json:"positions_stay"`
+	PositionsDown      int                        `json:"positions_down"`
+	PlayerInfo         []PlayerInfo               `json:"player_info"`
+	TopDrop            int                        `json:"top_drop"`
+	TopDropPlayerName  string                     `json:"top_drop_player_name"`
+	TopClimb           int                        `json:"top_climb"`
+	TopClimbPlayerName string                     `json:"top_climb_player_name"`
+	StatsMessage       string                     `json:"stats_message"`
+	CandidatesMessage  string                     `json:"candidates_message"`
+	PositionCandidates map[int]*PositionCandidate `json:"position_candidates"`
+}
+
+type PlayerInfo struct {
+	Id               int    `json:"id"`
+	Name             string `json:"name"`
+	PositionPrevious int    `json:"position_previous"`
+	PositionCurrent  int    `json:"position_current"`
+	PositionMovement int    `json:"position_movement"`
+}
+
+type PositionCandidate struct {
+	PlayerNames []string `json:"player_names"`
+	Secured     int      `json:"secured"`
 }

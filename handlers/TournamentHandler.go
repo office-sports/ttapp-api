@@ -74,6 +74,16 @@ func GetTournamentResults(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(results)
 }
 
+// GetTournamentGames returns array of all games for requested tournament
+func GetTournamentGames(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	tid, _ := strconv.Atoi(params["id"])
+	results, err := data.GetTournamentGames(tid)
+	checkErrHTTP(err, writer, "Unable to get tournament games")
+
+	json.NewEncoder(writer).Encode(results)
+}
+
 // GetTournamentStandingsById returns standings for requested tournament
 func GetTournamentStandingsById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
@@ -87,6 +97,21 @@ func GetTournamentStandingsById(writer http.ResponseWriter, request *http.Reques
 	checkErrHTTP(err, writer, "Unable to get tournament standings")
 
 	json.NewEncoder(writer).Encode(standings)
+}
+
+// GetTournamentInfo returns standings for requested tournament
+func GetTournamentInfo(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid tournament info id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+	info, err := data.GetTournamentInfo(id)
+	checkErrHTTP(err, writer, "Unable to get tournament standings")
+
+	json.NewEncoder(writer).Encode(info)
 }
 
 // GetTournamentLadders returns playoffs tournament ladders

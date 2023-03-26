@@ -41,9 +41,11 @@ func main() {
 	router.HandleFunc("/tournaments/{id}", handlers.GetTournamentById).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/schedule/{num}", handlers.GetTournamentSchedule).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/results/{num}", handlers.GetTournamentResults).Methods("GET")
+	router.HandleFunc("/tournaments/{id}/games", handlers.GetTournamentGames).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/standings", handlers.GetTournamentStandingsById).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/ladders", handlers.GetTournamentLadders).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/live_games", handlers.GetTournamentGamesLive).Methods("GET")
+	router.HandleFunc("/tournaments/{id}/info", handlers.GetTournamentInfo).Methods("GET")
 
 	// game routes
 	router.HandleFunc("/games/live", handlers.GetGamesLive).Methods("GET")

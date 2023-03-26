@@ -90,9 +90,14 @@ func FinalizeGame(sf models.SetFinal) {
 			log.Println("Error finalizing game, game id: ", sf.GameId, err)
 		}
 
+		_, err = RunTransaction(queries.CheckAndFinishTournament(), gr.TournamentId)
+		if err != nil {
+			log.Println("Error finalizing game, game id: ", sf.GameId, err)
+		}
+
 		// if this is playoffs game, update next one, if needed
 		if gr.Name != "" && gr.PlayOrder > 0 {
-			UpdateNextPlayoffsGame(winnerId, loserId, gr.PlayOrder)
+			UpdateNextPlayoffsGame(winnerId, loserId, gr.PlayOrder, gr.TournamentId)
 		}
 	} else {
 		var z int = 0
@@ -110,26 +115,26 @@ func FinalizeGame(sf models.SetFinal) {
 	SendEndSetMessage(gr)
 }
 
-func UpdateNextPlayoffsGame(winnerId int, loserId int, playOrder int) {
+func UpdateNextPlayoffsGame(winnerId int, loserId int, playOrder int, tournamentId int) {
 	updateStringWinner := "W." + strconv.Itoa(playOrder)
 	updateStringLoser := "L." + strconv.Itoa(playOrder)
 
-	_, err := RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), winnerId, updateStringWinner)
+	_, err := RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), winnerId, updateStringWinner, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), loserId, updateStringLoser)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), loserId, updateStringLoser, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), winnerId, updateStringWinner)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), winnerId, updateStringWinner, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), loserId, updateStringLoser)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), loserId, updateStringLoser, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}

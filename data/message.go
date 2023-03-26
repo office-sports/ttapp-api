@@ -4,9 +4,37 @@ import (
 	"github.com/office-sports/ttapp-api/models"
 	"github.com/slack-go/slack"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 )
+
+var digits = map[int]string{
+	0: "zero",
+	1: "one",
+	2: "two",
+	3: "three",
+	4: "four",
+	5: "five",
+	6: "six",
+	7: "seven",
+	8: "eight",
+	9: "nine",
+}
+
+var digitsOrder = map[int]string{
+	1:  "first",
+	2:  "second",
+	3:  "third",
+	4:  "fourth",
+	5:  "fifth",
+	6:  "sixth",
+	7:  "seventh",
+	8:  "eight",
+	9:  "ninth",
+	10: "tenth",
+}
 
 func getStartMessageText(result *models.GameResult, config *models.Config) (pretext string, text string) {
 	// playoffs match has a different message
@@ -206,4 +234,188 @@ func UpdateSlackMessage(config models.Config, pretext string, text string, threa
 	if err != nil {
 		panic(err)
 	}
+}
+
+func CreateRecapMessage(recap []*models.GroupInfo) {
+	totalGames := 0
+	totalGamesRemaining := 0
+	positionsUp := 0
+	positionsStay := 0
+	positionsString := ""
+
+	for _, group := range recap {
+		totalGames += group.GamesPlayed
+		totalGamesRemaining += group.GamesRemaining
+		positionsUp += group.PositionsUp
+		positionsStay += group.PositionsStay
+		positionsString += strconv.Itoa(group.GamesPlayed) + " in " + group.Name + ", "
+	}
+
+	for _, group := range recap {
+		msg := ""
+		msg += getPositionsUpMessage(group)
+		msg += getPositionsStayMessage(group)
+		msg += getPositionsTopDropMessage(group)
+		msg += getPositionsTopClimbMessage(group)
+
+		group.StatsMessage = msg
+
+		msg = getSpotsMessage(group)
+		group.CandidatesMessage = msg
+	}
+}
+
+func getPositionsUpMessage(group *models.GroupInfo) string {
+	sClimb := []string{
+		"During the last week, players changed their table position a total of |NUM| times. ",
+		"Over the course of the week, the players changed their table position |NUM| times. ",
+		"Throughout last week's games, the players changed their table position |NUM| times. ",
+		"Last week's matches were dynamic, with the players changing their table position |NUM| times throughout the week. "}
+
+	msg := getRandomMessage(sClimb)
+	if group.PositionsUp < 10 {
+		msg = strings.Replace(msg, "|NUM|", digits[group.PositionsUp], -1)
+	} else {
+		msg = strings.Replace(msg, "|NUM|", strconv.Itoa(group.PositionsUp), -1)
+	}
+
+	return msg
+}
+
+func getPositionsStayMessage(group *models.GroupInfo) string {
+	sStay := []string{
+		"In case of |NUM| players, position did not change. ",
+		"Despite some close games, |NUM| players managed to maintain their table position. ",
+		"We saw |NUM| competitors who remained in the same position. "}
+
+	msg := getRandomMessage(sStay)
+	msg = strings.Replace(msg, "|NUM|", digits[group.PositionsStay], -1)
+
+	return msg
+}
+
+func getPositionsTopDropMessage(group *models.GroupInfo) string {
+	sBiggestDrop := []string{
+		"It was a tough week for |PLAYERS|, who dropped the most by |NUM| places. ",
+		"The most unfortunate movement in the rankings was by |PLAYERS|, dropping |NUM| places. ",
+		"It was a disappointing week for |PLAYERS| in particular, who dropped the most in table position (|NUM| places) among all the participants. "}
+
+	msg := getRandomMessage(sBiggestDrop)
+	msg = strings.Replace(msg, "|PLAYERS|", "|="+group.TopDropPlayerName+"=|", -1)
+	msg = strings.Replace(msg, "|NUM|", digits[group.TopDrop], -1)
+	if group.TopDrop == 1 {
+		msg = strings.Replace(msg, "places", "place", -1)
+	}
+
+	return msg
+}
+
+func getPositionsTopClimbMessage(group *models.GroupInfo) string {
+	sBiggestClimb := []string{
+		"Out of all the players, |PLAYERS| made the most progress and climbed the most in table position over the course of the week (|NUM| places). ",
+		"Throughout last week's games, |PLAYERS| showed significant improvement and advanced |NUM| positions. ",
+		"We saw some incredible performances, and |PLAYERS| in particular climbed |NUM| in table position. "}
+
+	msg := getRandomMessage(sBiggestClimb)
+
+	msg = strings.Replace(msg, "|PLAYERS|", "|="+group.TopClimbPlayerName+"=|", -1)
+	msg = strings.Replace(msg, "|NUM|", digits[group.TopClimb], -1)
+	if group.TopDrop == 1 {
+		msg = strings.Replace(msg, "places", "place", -1)
+		msg = strings.Replace(msg, "positions", "position", -1)
+	}
+
+	return msg
+}
+
+func getSpotsMessage(group *models.GroupInfo) string {
+	noSpots := []string{
+		"With just a few games left in the season, no competitor has secured a place in the playoffs yet. ",
+		"Despite their strong performances so far, none of the competitors have a secured spot in the playoffs at this point. ",
+		"The competition is intense, and there are no guaranteed places for the playoffs in the current table. ",
+		"With several teams still in contention for the playoffs, no one has secured a place in the top positions of the table. ",
+		"It's anyone's game at this point, as there are no secured places for the playoffs in the current standings. "}
+
+	// count secured spots
+	securedSpots := 0
+	var securedSpotsPlayers []string
+	securedSpotsPlayersNames := ""
+	for _, p := range group.PositionCandidates {
+		if p.Secured == 1 {
+			securedSpots++
+			if len(p.PlayerNames) == 1 {
+				securedSpotsPlayers = append(securedSpotsPlayers, p.PlayerNames[0])
+			}
+		}
+	}
+
+	securedSpotsPlayersNames = strings.Join(securedSpotsPlayers, ", ")
+
+	msg := "We'll have " + digits[group.GroupPromotions] + " players advancing to playoffs from |GROUP|. "
+	msg = strings.Replace(msg, "|GROUP|", group.Name, -1)
+
+	if securedSpots == 0 {
+		msg += getRandomMessage(noSpots)
+	} else {
+		if securedSpots == 1 {
+			msg += "There is only " + digits[securedSpots] + " secured spot for playoffs by far. Congratulations " +
+				securedSpotsPlayersNames + ". "
+		} else {
+			msg += "There are already " + digits[securedSpots] + " secured spots for playoffs. Congratulations " +
+				securedSpotsPlayersNames + ". "
+		}
+	}
+
+	noPromo := []string{
+		"Despite their best efforts, |PLAYERS| will not be advancing to the playoffs and will be fighting for |POSITION| position in the table. ",
+		"It's been a tough season for |PLAYERS| and unfortunately those competitors will not be moving on to the playoffs, but instead will be battling for |POSITION| position in the standings. ",
+		"Although falling short of making the playoffs, |PLAYERS| are determined to fight for |POSITION| position in the table. ",
+		"It's a disappointing outcome for |PLAYERS|, who will not be advancing to the playoffs, and instead will be fighting for |POSITION| position in the standings. ",
+		"While not having made it to the playoffs this season, |PLAYERS| are not giving up and will be competing fiercely to take |POSITION| position in the table. "}
+
+	promo := []string{
+		"|PLAYERS| are in a tough battle for |POSITION| position in the table, and are determined to secure their spot in the playoffs. ",
+		"With just a few games left in the season, these players are fighting for a promotion to the playoffs from |POSITION| position in the table: |PLAYERS|. ",
+		"|PLAYERS| are still very much in the playoff race and are fighting hard to move up the table to secure |POSITION| position. ",
+		"It's a close race for |POSITION| position, but |PLAYERS| are not backing down and are doing everything they can to secure their spot in the postseason. ",
+		"The competition is fierce, but |PLAYERS| are up for the challenge and are focused on fighting for promotion to the playoffs from |POSITION| position in the standings. "}
+
+	for position, p := range group.PositionCandidates {
+		if p.Secured != 0 {
+			continue
+		}
+
+		if position <= group.GroupPromotions {
+			msg += getRandomMessage(promo)
+			msg = strings.Replace(msg, "|PLAYERS|", "|="+strings.Join(p.PlayerNames, ", ")+"=|", -1)
+			msg = strings.Replace(msg, "|POSITION|", digitsOrder[position], -1)
+		} else {
+			msg += getRandomMessage(noPromo)
+			msg = strings.Replace(msg, "|PLAYERS|", "|="+strings.Join(p.PlayerNames, ", ")+"=|", -1)
+			msg = strings.Replace(msg, "|POSITION|", digitsOrder[position], -1)
+			if len(p.PlayerNames) == 1 {
+				msg = strings.Replace(msg, "are", "is", -1)
+				msg = strings.Replace(msg, "those competitors", "this competitor", -1)
+			}
+		}
+	}
+
+	return msg
+}
+
+func getPlayerSituationInfo(pid int, playerInfo []models.PlayerInfo) *models.PlayerInfo {
+	for _, p := range playerInfo {
+		if p.Id == pid {
+			return &p
+		}
+	}
+
+	return nil
+}
+
+func getRandomMessage(msgs []string) string {
+	rand.Seed(time.Now().UnixNano())
+	msg := msgs[rand.Intn(len(msgs))]
+
+	return msg
 }

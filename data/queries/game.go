@@ -8,12 +8,25 @@ func FinishGameQuery() string {
 	return `update game g set winner_id = ?, current_set = 1, is_finished = 1, date_played = now() where g.id = ?`
 }
 
+func CheckAndFinishTournament() string {
+	return `update tournament t
+	join
+	(select t.id tournament_id, (count(g.id) - sum(g.is_finished)) as c
+	from tournament t
+	left join game g on t.id = g.tournament_id
+	group by t.id) t2 on t2.tournament_id = t.id
+	set t.is_finished = 1
+	where c = 0 and t.id = ?`
+}
+
 func UpdateNextPlayoffGameHomePlayer() string {
-	return `update game g set home_player_id = ? where playoff_home_player_id = ?`
+	return `update game g set home_player_id = ? 
+              where playoff_home_player_id = ? and tournament_id = ?`
 }
 
 func UpdateNextPlayoffGameAwayPlayer() string {
-	return `update game g set away_player_id = ? where playoff_away_player_id = ?`
+	return `update game g set away_player_id = ? 
+              where playoff_away_player_id = ? and tournament_id = ?`
 }
 
 func GetLiveGamesQuery() string {
