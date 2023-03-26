@@ -312,7 +312,7 @@ func getPositionsTopDropMessage(group *models.GroupInfo) string {
 
 func getPositionsTopClimbMessage(group *models.GroupInfo) string {
 	sBiggestClimb := []string{
-		"Out of all the players, |PLAYERS| made the most progress and climbed the most in table position over the course of the week (|NUM| places). ",
+		"Out of all the players, |PLAYERS| made the most progress and climbed |NUM| up in table over the course of the week. ",
 		"Throughout last week's games, |PLAYERS| showed significant improvement and advanced |NUM| positions. ",
 		"We saw some incredible performances, and |PLAYERS| in particular climbed |NUM| in table position. "}
 
@@ -363,7 +363,7 @@ func getSpotsMessage(group *models.GroupInfo) string {
 	securedSpotsPlayersNames = strings.Join(securedSpotsPlayers, ", ")
 	securedSpotsPlayoffsPlayersNames = strings.Join(securedSpotsPlayoffsPlayers, ", ")
 
-	msg := "We'll have " + digits[group.GroupPromotions] + " players advancing to playoffs from |GROUP|. "
+	msg := "We'll have total of " + digits[group.GroupPromotions] + " players advancing to playoffs from |GROUP|. "
 	msg = strings.Replace(msg, "|GROUP|", group.Name, -1)
 
 	if securedSpots == 0 {
@@ -401,12 +401,14 @@ func getSpotsMessage(group *models.GroupInfo) string {
 		"With just a few games left in the season, |PLAYERS| |PLURAL_BE| fighting for a promotion to the playoffs from |POSITION| position in the table. ",
 		"|PLAYERS| |PLURAL_BE| still very much in the playoff race and |PLURAL_BE| fighting hard to move up the table to secure |POSITION| position. ",
 		"It's a close race for |POSITION| position, but |PLAYERS| |PLURAL_BE| not backing down and |PLURAL_BE| doing everything possible to secure the spot in the postseason. ",
-		"The competition is fierce, but |PLAYERS| |PLURAL_BE| up for the challenge and |PLURAL_BE| focused on fighting for promotion to the playoffs from |POSITION| position in the standings. "}
+		"The competition is fierce, but |PLAYERS| |PLURAL_BE| up for the challenge and |PLURAL_BE| focused on fighting for promotion to the playoffs from |POSITION| position in the standings. ",
+		"Best case scenario for |PLAYERS| is |POSITION| position in standings. "}
 
 	maxPos := []string{
 		"With just a few games left in the season, this player surely will finish at least in |POSITION_MIN| position. ",
-		"This player will finish no lower than |POSITION_MIN| position in the final standings. ",
-		"It's certain that this player will finish placed at least |POSITION_MIN|. "}
+		"This player might end up on |POSITION_MIN| position in the final standings as well. ",
+		"The bottom for this player is |POSITION_MIN|. ",
+		"The worst scenario for this player would be |POSITION_MIN| position. "}
 
 	for position, p := range group.PositionCandidates {
 		if p.Secured != 0 {
