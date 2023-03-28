@@ -80,18 +80,19 @@ func GetGameModes(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(md)
 }
 
-// GetEloCache returns array of finished games with ELO values
-func GetEloCache(writer http.ResponseWriter, request *http.Request) {
-	SetHeaders(writer)
-	md, err := data.GetEloCache()
-	if err == sql.ErrNoRows {
-		json.NewEncoder(writer).Encode(new(models.EloCache))
-		return
-	}
+// RecalculateElo returns array of finished games with ELO values
+func RecalculateElo(writer http.ResponseWriter, request *http.Request) {
+	g, err := data.RecalculateElo()
+	checkErrHTTP(err, writer, "Unable to recalculate elo")
 
-	checkErrHTTP(err, writer, "Unable to fetch elo cache data")
+	json.NewEncoder(writer).Encode(g)
+}
 
-	json.NewEncoder(writer).Encode(md)
+// UpdateGameElo returns array of finished games with ELO values
+func UpdateGameElo(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	data.UpdateGameElo(id)
 }
 
 // GetGameTimeline returns game timeline for requested id

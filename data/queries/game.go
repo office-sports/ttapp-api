@@ -143,22 +143,31 @@ func GetEloCache() string {
             order by g.tournament_id, g.date_played, g.date_of_match, g.id asc`
 }
 
-func GetEloLastCache() string {
+func GetEloHistory() string {
+	return `select g.id, g.home_player_id, g.away_player_id, g.home_score, g.away_score,
+			coalesce(g.old_home_elo, 0), 
+			coalesce(g.old_away_elo, 0), 
+			coalesce(g.new_home_elo, 0), 
+			coalesce(g.new_away_elo, 0)
+			from game g
+			join tournament t on t.id = g.tournament_id
+			where 
+			g.is_finished = 1 and is_abandoned = 0 and t.is_official = 1
+			order by g.date_played`
+}
+
+func GetPlayersEloData() string {
 	return `select
-                g.id,
-                home_player_id,
-                away_player_id,
-                winner_id,
-                home_score,
-                away_score,
-                old_home_elo,
-                old_away_elo,
-                new_home_elo,
-                new_away_elo,
-                coalesce(sum(if(g.home_player_id = ?, 1, 0)) + sum(if(g.away_player_id = ?, 1, 0)), 0) as gamesPlayed
-            from game g join tournament t on g.tournament_id = t.id and t.is_official = 1
-            where g.is_finished = 1
-            and ? IN (g.home_player_id, g.away_player_id)
-            and g.id != ?
-            order by g.date_played desc limit 1`
+    coalesce(ROW_NUMBER() OVER(ORDER BY g.date_played), 0) AS games_played,
+    coalesce(if (g.home_player_id = ?, new_home_elo, new_away_elo), 1500) as elo
+	from game g
+	join tournament t on t.id = g.tournament_id
+	where
+	  ? in (g.home_player_id, away_player_id)
+	  and g.is_finished = 1
+	  and is_abandoned = 0
+	  and t.is_official = 1
+	  and g.id != ?
+	order by g.date_played desc
+	limit 1`
 }

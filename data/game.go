@@ -1,6 +1,7 @@
 package data
 
 import (
+	"database/sql"
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"log"
@@ -99,6 +100,8 @@ func FinalizeGame(sf models.SetFinal) {
 		if gr.Name != "" && gr.PlayOrder > 0 {
 			UpdateNextPlayoffsGame(winnerId, loserId, gr.PlayOrder, gr.TournamentId)
 		}
+
+		UpdateGameElo(sf.GameId)
 	} else {
 		var z int = 0
 		currentSet := gr.CurrentSet + 1
@@ -438,8 +441,8 @@ func SaveGameScore(gr models.GameSetResults) {
 	// save data into game table, set scores, winner, is_finished, date_played
 	updateGame(gr, hs, as)
 
-	// recalculate elo
-	calculateElo(gr.GameId)
+	// update elo
+	UpdateGameElo(gr.GameId)
 
 	ann, err := IsAnnounced(gr.GameId)
 	if err != nil {
@@ -531,33 +534,6 @@ func UpdateGameCurrentSet(gid int, sid int) {
 	}
 }
 
-func GetEloLastCache() ([]*models.EloCache, error) {
-	rows, err := models.DB.Query(queries.GetEloLastCache())
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	gm := make([]*models.EloCache, 0)
-	for rows.Next() {
-		o := new(models.EloCache)
-		err := rows.Scan(&o.Id, &o.HomePlayerId, &o.AwayPlayerId, &o.WinnerId, &o.HomeScoreTotal, &o.AwayScoreTotal,
-			&o.HomeElo, &o.AwayElo, &o.NewHomeElo, &o.NewAwayElo)
-		if err != nil {
-			return nil, err
-		}
-
-		gm = append(gm, o)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gm, nil
-}
-
 func IsAnnounced(gid int) (*models.Announcement, error) {
 	ann := new(models.Announcement)
 	err := models.DB.QueryRow(`select announced, ts from game g where g.id = ?`, gid).Scan(&ann.IsAnnounced, &ann.Ts)
@@ -569,25 +545,62 @@ func IsAnnounced(gid int) (*models.Announcement, error) {
 	return ann, nil
 }
 
-// GetEloCache returns array of finished games with ELO values and scores
-func GetEloCache() ([]*models.EloCache, error) {
-	rows, err := models.DB.Query(queries.GetEloCache())
+// RecalculateElo returns array of finished games with ELO values and scores
+func RecalculateElo() ([]*models.EloHistory, error) {
+	rows, err := models.DB.Query(queries.GetEloHistory())
 
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	gm := make([]*models.EloCache, 0)
+	playersElo := make(map[int]int)
+	playersGamesPlayed := make(map[int]int)
+
+	gm := make([]*models.EloHistory, 0)
 	for rows.Next() {
-		o := new(models.EloCache)
-		err := rows.Scan(&o.Id, &o.HomePlayerId, &o.AwayPlayerId, &o.WinnerId, &o.HomeScoreTotal, &o.AwayScoreTotal,
-			&o.HomeElo, &o.AwayElo, &o.NewHomeElo, &o.NewAwayElo)
+		h := new(models.EloHistory)
+		err := rows.Scan(&h.GameId, &h.HomePlayerId, &h.AwayPlayerId, &h.HomeScoreTotal, &h.AwayScoreTotal,
+			&h.HomeEloOld, &h.AwayEloOld, &h.HomeEloNew, &h.AwayEloNew)
 		if err != nil {
 			return nil, err
 		}
 
-		gm = append(gm, o)
+		if playersElo[h.HomePlayerId] == 0 {
+			playersElo[h.HomePlayerId] = 1500
+			playersGamesPlayed[h.HomePlayerId] = 0
+			h.HomeEloOld = 1500
+		} else {
+			h.HomeEloOld = playersElo[h.HomePlayerId]
+			playersGamesPlayed[h.HomePlayerId]++
+		}
+
+		h.HomePlayed = playersGamesPlayed[h.HomePlayerId]
+
+		if playersElo[h.AwayPlayerId] == 0 {
+			playersElo[h.AwayPlayerId] = 1500
+			playersGamesPlayed[h.AwayPlayerId] = 0
+			h.AwayEloOld = 1500
+		} else {
+			h.AwayEloOld = playersElo[h.AwayPlayerId]
+			playersGamesPlayed[h.AwayPlayerId]++
+		}
+
+		h.AwayPlayed = playersGamesPlayed[h.AwayPlayerId]
+
+		nh, na := CalculateElo(h.HomeEloOld, h.HomePlayed, h.HomeScoreTotal, h.AwayEloOld, h.AwayPlayed, h.AwayScoreTotal)
+
+		h.HomeEloNew = nh
+		h.AwayEloNew = na
+
+		playersElo[h.HomePlayerId] = nh
+		playersElo[h.AwayPlayerId] = na
+
+		updateGameElos(h.GameId, h.HomeEloOld, h.AwayEloOld, h.HomeEloNew, h.AwayEloNew)
+		updatePlayerElo(h.HomePlayerId, h.HomeEloNew, h.HomeEloOld)
+		updatePlayerElo(h.AwayPlayerId, h.AwayEloNew, h.AwayEloOld)
+
+		gm = append(gm, h)
 	}
 
 	if err != nil {
@@ -597,184 +610,90 @@ func GetEloCache() ([]*models.EloCache, error) {
 	return gm, nil
 }
 
-func calculateElo(gameId int) {
-	g, err := GetGameById(gameId)
-	playerCache := make(map[int]*models.PlayerCache, 0)
-	var winner, loser *models.PlayerCache
-	homePlayerId := g.HomePlayerId
-	awayPlayerId := g.AwayPlayerId
-	homeScore := g.HomeScoreTotal
-	awayScore := g.AwayScoreTotal
-	winnerId := g.WinnerId
-	winParam := 1.0
-	loseParam := 0.0
-
-	o := new(models.EloCache)
-	err = models.DB.QueryRow(queries.GetEloLastCache(), homePlayerId, homePlayerId, homePlayerId, gameId).Scan(
-		&o.Id, &o.HomePlayerId, &o.AwayPlayerId, &o.WinnerId, &o.HomeScoreTotal, &o.AwayScoreTotal,
-		&o.HomeElo, &o.AwayElo, &o.NewHomeElo, &o.NewAwayElo, &o.GamesPlayed)
-
-	p := new(models.EloCache)
-	err = models.DB.QueryRow(queries.GetEloLastCache(), awayPlayerId, awayPlayerId, awayPlayerId, gameId).Scan(
-		&p.Id, &p.HomePlayerId, &p.AwayPlayerId, &p.WinnerId, &p.HomeScoreTotal, &p.AwayScoreTotal,
-		&p.HomeElo, &p.AwayElo, &p.NewHomeElo, &p.NewAwayElo, &p.GamesPlayed)
-
-	// At this point we have to fetch old home and old away elo
-	i := new(models.PlayerCache)
-	if o.GamesPlayed == 0 {
-		i.Elo = 1500
-		i.GamesPlayed = 1
-		playerCache[homePlayerId] = i
-	} else {
-		i.GamesPlayed = o.GamesPlayed
-		if homePlayerId == o.HomePlayerId {
-			i.Elo = *o.NewHomeElo
-		} else {
-			i.Elo = *o.NewAwayElo
-		}
-		playerCache[homePlayerId] = i
-	}
-
-	j := new(models.PlayerCache)
-	if p.GamesPlayed == 0 {
-		j.Elo = 1500
-		j.GamesPlayed = 1
-		playerCache[awayPlayerId] = j
-	} else {
-		j.GamesPlayed = p.GamesPlayed
-		if awayPlayerId == p.HomePlayerId {
-			j.Elo = *p.NewHomeElo
-		} else {
-			j.Elo = *p.NewAwayElo
-		}
-		playerCache[awayPlayerId] = j
-	}
-
-	oldHomeElo := playerCache[homePlayerId].Elo
-	oldAwayElo := playerCache[awayPlayerId].Elo
-
-	if winnerId == homePlayerId {
-		winner = playerCache[homePlayerId]
-		loser = playerCache[awayPlayerId]
-	} else if winnerId == awayPlayerId {
-		winner = playerCache[awayPlayerId]
-		loser = playerCache[homePlayerId]
-	} else {
-		winner = playerCache[homePlayerId]
-		loser = playerCache[awayPlayerId]
-		winParam = 0.5
-		loseParam = 0.5
-	}
-
-	pointDifference := math.Abs(float64(homeScore - awayScore))
-	multiplier := math.Log10(pointDifference+1) * (2.2 / (float64(winner.Elo-loser.Elo)*0.001 + 2.2))
-
-	pow1 := float64(800/winner.GamesPlayed) * (winParam - (1 / (1 + math.Pow10(int(float64(loser.Elo-winner.Elo)/400)))))
-	pow2 := float64(800/winner.GamesPlayed) * (loseParam - (1 / (1 + math.Pow10(int(float64(winner.Elo-loser.Elo)/400)))))
-
-	winnerNewElo := float64(winner.Elo) + (pow1 * multiplier)
-	loserNewElo := float64(loser.Elo) + (pow2 * multiplier)
-
-	if winnerId == awayPlayerId {
-		playerCache[awayPlayerId].Elo = int(winnerNewElo)
-		playerCache[awayPlayerId].GamesPlayed++
-		playerCache[awayPlayerId].OldElo = oldAwayElo
-		playerCache[homePlayerId].Elo = int(loserNewElo)
-		playerCache[homePlayerId].GamesPlayed++
-		playerCache[homePlayerId].OldElo = oldHomeElo
-	} else {
-		playerCache[homePlayerId].Elo = int(winnerNewElo)
-		playerCache[homePlayerId].GamesPlayed++
-		playerCache[homePlayerId].OldElo = oldAwayElo
-		playerCache[awayPlayerId].Elo = int(loserNewElo)
-		playerCache[awayPlayerId].GamesPlayed++
-		playerCache[awayPlayerId].OldElo = oldHomeElo
-	}
-
-	updateGameElos(gameId, oldHomeElo, oldAwayElo, playerCache[homePlayerId].Elo, playerCache[awayPlayerId].Elo)
+// UpdateGameElo returns array of finished games with ELO values and scores
+func UpdateGameElo(id int) {
+	gid, err := GetGameById(id)
 
 	if err != nil {
 		return
 	}
+
+	var ohE, oaE, hp, ap int
+
+	err = models.DB.QueryRow(queries.GetPlayersEloData(), gid.HomePlayerId, gid.HomePlayerId, id).Scan(&hp, &ohE)
+	if err == sql.ErrNoRows {
+		ohE = 1500
+		hp = 0
+	} else if err != nil {
+		return
+	}
+
+	err = models.DB.QueryRow(queries.GetPlayersEloData(), gid.AwayPlayerId, gid.AwayPlayerId, id).Scan(&ap, &oaE)
+	if err == sql.ErrNoRows {
+		oaE = 1500
+		ap = 0
+	} else if err != nil {
+		return
+	}
+
+	nh, na := CalculateElo(ohE, hp, gid.HomeScoreTotal, oaE, ap, gid.AwayScoreTotal)
+
+	updateGameElos(id, ohE, oaE, nh, na)
+	updatePlayerElo(gid.HomePlayerId, nh, ohE)
+	updatePlayerElo(gid.AwayPlayerId, na, oaE)
 }
 
-func recalculateElo() {
-	playerCache := make(map[int]*models.PlayerCache, 0)
-	var gameId, homePlayerId, awayPlayerId, winnerId, homeScore, awayScore int
-	var winner, loser *models.PlayerCache
-	//var winParam, loseParam float64
-
-	ec, _ := GetEloCache()
-
-	for _, c := range ec {
-		winner = nil
-		loser = nil
-		gameId = c.Id
-		homePlayerId = c.HomePlayerId
-		awayPlayerId = c.AwayPlayerId
-		winnerId = c.WinnerId
-		homeScore = c.HomeScoreTotal
-		awayScore = c.AwayScoreTotal
-		winParam := 1.0
-		loseParam := 0.0
-
-		if playerCache[homePlayerId] == nil {
-			i := new(models.PlayerCache)
-			i.Elo = 1500
-			i.GamesPlayed = 1
-			playerCache[homePlayerId] = i
-		}
-
-		if playerCache[awayPlayerId] == nil {
-			i := new(models.PlayerCache)
-			i.Elo = 1500
-			i.GamesPlayed = 1
-			playerCache[awayPlayerId] = i
-		}
-
-		oldHomeElo := playerCache[homePlayerId].Elo
-		oldAwayElo := playerCache[awayPlayerId].Elo
-
-		if winnerId == homePlayerId {
-			winner = playerCache[homePlayerId]
-			loser = playerCache[awayPlayerId]
-		} else if winnerId == awayPlayerId {
-			winner = playerCache[awayPlayerId]
-			loser = playerCache[homePlayerId]
-		} else {
-			winner = playerCache[homePlayerId]
-			loser = playerCache[awayPlayerId]
-			winParam = 0.5
-			loseParam = 0.5
-		}
-
-		pointDifference := math.Abs(float64(homeScore - awayScore))
-		multiplier := math.Log10(pointDifference+1) * (2.2 / (float64(winner.Elo-loser.Elo)*0.001 + 2.2))
-
-		pow1 := float64(800/winner.GamesPlayed) * (winParam - (1 / (1 + math.Pow10(int(float64(loser.Elo-winner.Elo)/400)))))
-		pow2 := float64(800/winner.GamesPlayed) * (loseParam - (1 / (1 + math.Pow10(int(float64(winner.Elo-loser.Elo)/400)))))
-
-		winnerNewElo := float64(winner.Elo) + (pow1 * multiplier)
-		loserNewElo := float64(loser.Elo) + (pow2 * multiplier)
-
-		if winnerId == awayPlayerId {
-			playerCache[awayPlayerId].Elo = int(winnerNewElo)
-			playerCache[awayPlayerId].GamesPlayed++
-			playerCache[awayPlayerId].OldElo = oldAwayElo
-			playerCache[homePlayerId].Elo = int(loserNewElo)
-			playerCache[homePlayerId].GamesPlayed++
-			playerCache[homePlayerId].OldElo = oldHomeElo
-		} else {
-			playerCache[homePlayerId].Elo = int(winnerNewElo)
-			playerCache[homePlayerId].GamesPlayed++
-			playerCache[homePlayerId].OldElo = oldAwayElo
-			playerCache[awayPlayerId].Elo = int(loserNewElo)
-			playerCache[awayPlayerId].GamesPlayed++
-			playerCache[awayPlayerId].OldElo = oldHomeElo
-		}
-
-		updateGameElos(gameId, oldHomeElo, oldAwayElo, playerCache[homePlayerId].Elo, playerCache[awayPlayerId].Elo)
+// CalculateElo will calculate the Elo for each player based on the given information. Returned value is new Elo for player1 and player2 respectively
+func CalculateElo(hElo int, hPlayed int, hScore int, aElo int, aPlayed int, aScore int) (int, int) {
+	if hPlayed == 0 {
+		hPlayed = 1
 	}
+	if aPlayed == 0 {
+		aPlayed = 1
+	}
+
+	// P1 = Winner
+	// P2 = Looser
+	// PD = Points Difference
+	// Multiplier = ln(abs(PD) + 1) * (2.2 / ((P1(old)-P2(old)) * 0.001 + 2.2))
+	// Elo Winner = P1(old) + 800/num_matches * (1 - 1/(1 + 10 ^ (P2(old) - P1(old) / 400) ) )
+	// Elo Looser = P2(old) + 800/num_matches * (0 - 1/(1 + 10 ^ (P2(old) - P1(old) / 400) ) )
+
+	if hScore > aScore {
+		multiplier := math.Log(math.Abs(float64(hScore-aScore))+1) * (2.2 / ((float64(hElo-aElo))*0.001 + 2.2))
+		hElo, aElo = calculateElo(hElo, hPlayed, aElo, aPlayed, multiplier, false)
+	} else if hScore < aScore {
+		multiplier := math.Log(math.Abs(float64(hScore-aScore))+1) * (2.2 / ((float64(aElo-hElo))*0.001 + 2.2))
+		aElo, hElo = calculateElo(aElo, aPlayed, hElo, hPlayed, multiplier, false)
+	} else {
+		hElo, aElo = calculateElo(hElo, hPlayed, aElo, aPlayed, 1.0, true)
+	}
+	// Cap Elo at 400 to avoid players going too low
+	if hElo < 400 {
+		hElo = 400
+	}
+	if aElo < 400 {
+		aElo = 400
+	}
+	return hElo, aElo
+}
+
+func calculateElo(winnerElo int, winnerGames int, loserElo int, loserGames int, multiplier float64, isDraw bool) (int, int) {
+	constant := 800.0
+
+	winner := 1.0
+	loser := 0.0
+	if isDraw {
+		winner = 0.5
+		loser = 0.5
+	}
+	changeWinner := int((constant / float64(winnerGames) * (winner - (1 / (1 + math.Pow(10, float64(loserElo-winnerElo)/400))))) * multiplier)
+	calculatedWinner := winnerElo + changeWinner
+
+	changeLooser := int((constant / float64(loserGames) * (loser - (1 / (1 + math.Pow(10, float64(winnerElo-loserElo)/400))))) * multiplier)
+	calculatedLooser := loserElo + changeLooser
+
+	return calculatedWinner, calculatedLooser
 }
 
 func updateGameElos(g int, ohe int, oae int, nhe int, nae int) {
@@ -784,5 +703,15 @@ func updateGameElos(g int, ohe int, oae int, nhe int, nae int) {
 
 	if err != nil {
 		log.Println("Error updating game ELOS, game id: ", g, err)
+	}
+}
+
+func updatePlayerElo(pid int, elo int, pelo int) {
+	var s string
+	s = `UPDATE player p SET p.current_elo = ?, p.tournament_elo = ?, p.tournament_elo_previous = ? WHERE id = ?`
+	_, err := models.DB.Exec(s, elo, elo, pelo, pid)
+
+	if err != nil {
+		log.Println("Error updating player ELOS, player id: ", pid, err)
 	}
 }

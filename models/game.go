@@ -256,6 +256,20 @@ type EloCache struct {
 	GamesPlayed    int  `json:"games_played"`
 }
 
+type EloHistory struct {
+	GameId         int `json:"game_id"`
+	HomePlayerId   int `json:"home_player_id"`
+	AwayPlayerId   int `json:"away_player_id"`
+	HomeScoreTotal int `json:"home_score_total"`
+	AwayScoreTotal int `json:"away_score_total"`
+	HomeEloOld     int `json:"home_elo"`
+	AwayEloOld     int `json:"away_elo"`
+	HomeEloNew     int `json:"new_home_elo"`
+	AwayEloNew     int `json:"new_away_elo"`
+	HomePlayed     int `json:"home_played"`
+	AwayPlayed     int `json:"away_played"`
+}
+
 type ServeData struct {
 	GameId                 int `json:"game_id"`
 	SetNumber              int `json:"set_number"`

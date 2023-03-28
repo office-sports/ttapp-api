@@ -151,3 +151,27 @@ func GetLeadersQuery() string {
 			   where pp.active = 1
 		group by playerId`
 }
+
+func GetPlayerLastEloDataQuery() string {
+	return `select
+			ROW_NUMBER() OVER(ORDER BY g.date_played) AS games_played,
+			g.id,
+			g.home_player_id,
+			g.away_player_id,
+			g.home_score,
+			g.away_score,
+			g.old_home_elo,
+			g.old_away_elo,
+			g.new_home_elo,
+			g.new_away_elo
+			from game g
+			join tournament t on t.id = g.tournament_id
+			where
+			  ? in (g.home_player_id, away_player_id)
+			  and g.is_finished = 1
+			  and is_abandoned = 0
+			  and t.is_official = 1
+			  and g.id != 1401
+			order by g.date_played desc
+			limit 1`
+}
