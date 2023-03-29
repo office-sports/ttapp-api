@@ -341,6 +341,7 @@ func getSpotsMessage(group *models.GroupInfo) string {
 	securedSpotsPlayoffs := 0
 	var securedSpotsPlayers []string
 	var securedSpotsPlayoffsPlayers []string
+	var securedSpotsPositions []string
 	securedSpotsPlayersNames := ""
 	securedSpotsPlayoffsPlayersNames := ""
 	for position, p := range group.PositionCandidates {
@@ -355,7 +356,19 @@ func getSpotsMessage(group *models.GroupInfo) string {
 				securedSpotsPlayoffs++
 				if len(p.PlayerNames) == 1 {
 					securedSpotsPlayoffsPlayers = append(securedSpotsPlayoffsPlayers, p.PlayerNames[0])
+					securedSpotsPositions = append(securedSpotsPositions, digitsOrder[position])
 				}
+			}
+		}
+	}
+
+	// there might not be any secured spots (fixed) but there can be players
+	// with sure advance to playoffs, those are with minimum position of advance group size
+	if securedSpotsPlayoffs == 0 {
+		for _, p := range group.PlayerInfo {
+			if p.PositionMin <= group.GroupPromotions {
+				securedSpotsPlayoffs++
+				securedSpotsPlayoffsPlayers = append(securedSpotsPlayoffsPlayers, p.Name)
 			}
 		}
 	}
@@ -368,24 +381,35 @@ func getSpotsMessage(group *models.GroupInfo) string {
 	msg = strings.Replace(msg, "|GROUP|", group.Name, -1)
 
 	if securedSpots == 0 {
-		msg += getRandomMessage(noSpots)
+		if securedSpotsPlayoffs == 0 {
+			msg += getRandomMessage(noSpots)
+		} else {
+			msg += strings.Title(strings.ToLower(digits[securedSpotsPlayoffs])) + " already secured spot in playoffs ladder: |=" +
+				securedSpotsPlayoffsPlayersNames + "=|, however final position in standings depend on results or remaining games. "
+		}
 	} else {
 		if securedSpots == 1 {
 			msg += "There is only " + digits[securedSpots] + " final position in the table so far: |=" +
 				securedSpotsPlayersNames + "=|. "
+			if securedSpotsPlayoffs > 0 {
+				msg += "Player will advance to playoffs from " + strings.Join(securedSpotsPositions, ",") + " position in the table. "
+			}
 		} else {
 			msg += "There are " + digits[securedSpots] + " final positions in the table for |=" +
 				securedSpotsPlayersNames + "=|. "
 
 			if securedSpotsPlayoffs > 0 {
-				msg += strings.Title(strings.ToLower(digits[securedSpotsPlayoffs])) +
-					" of those advance to playoffs"
-				if securedSpots != securedSpotsPlayoffs {
-					msg += ", a group consisting of |=" + securedSpotsPlayoffsPlayersNames +
-						"=|"
-
+				if securedSpots == securedSpotsPlayoffs {
+					msg += "All of those competitors "
+				} else {
+					msg += strings.Title(strings.ToLower(digits[securedSpotsPlayoffs]))
+					msg += " of those competitors: "
+					msg += "|=" + securedSpotsPlayoffsPlayersNames + "=| "
 				}
-				msg += ". Congratulations! "
+				msg += "advance to playoffs from " +
+					strings.Join(securedSpotsPositions, ", ") +
+					" positions in table, respectively. "
+				msg += "Congratulations! "
 			}
 		}
 	}
