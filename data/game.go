@@ -412,15 +412,15 @@ func saveGameScores(gr models.GameSetResults) {
 func updateGame(gr models.GameSetResults, hs int, as int) {
 	var s string
 	if hs > as {
-		s = `UPDATE game SET home_score = ?, away_score = ?, is_finished = 1, 
+		s = `UPDATE game SET home_score = ?, away_score = ?, is_finished = 1, is_walkover = ?,
                 date_played = NOW(), winner_id = home_player_id WHERE id = ?`
 	} else if as > hs {
-		s = `UPDATE game SET home_score = ?, away_score = ?, is_finished = 1, 
+		s = `UPDATE game SET home_score = ?, away_score = ?, is_finished = 1, is_walkover = ?,
                 date_played = NOW(), winner_id = away_player_id WHERE id = ?`
 	} else {
 		return
 	}
-	_, err := RunTransaction(s, hs, as, gr.GameId)
+	_, err := RunTransaction(s, hs, as, gr.IsWalkover, gr.GameId)
 
 	if err != nil {
 		log.Println("Error updating game data, game id: ", gr.GameId, err)
