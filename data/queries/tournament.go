@@ -112,6 +112,64 @@ func GetTournamentStandingsQuery() string {
 			order by ptg.group_id asc, points desc, setDf desc, u.df desc`
 }
 
+func GetPlayersTournamentEloQuery() string {
+	return `
+		select id, playerId, elo, lelo, winner_id from (
+		select g.id,
+							  g.home_player_id as playerId,
+							  g.old_home_elo as elo,
+							  g.new_home_elo as lelo,
+							  g.date_played as dp,
+							  g.winner_id
+					   from game g
+					   where g.tournament_id = ?
+						 and g.is_finished = 1
+					   union
+					   select g.id,
+							  g.away_player_id as playerId,
+							  g.old_away_elo as elo,
+							  g.new_away_elo as lelo,
+							  g.date_played as dp,
+							  g.winner_id
+					   from game g
+					   where g.tournament_id = ?
+						 and g.is_finished = 1) gg
+		order by gg.playerId, gg.dp
+`
+}
+
+func GetTournamentPerformanceQuery() string {
+	return `select 
+    	0 pos, p.playerId, p2.name playerName, p2.current_elo, ptg.group_id, tg.name groupName, tg.abbreviation,
+       sum(won) as won, sum(lost) as lost, sum(finished) as finished, sum(unfinished) as unfinished,
+       if (sum(finished) = 0, 0, round((sum(p.sumElo) + 400 * (sum(won) - sum(lost)))/sum(finished))) as performance,
+       (sum(won)*2) as points, (sum(finished) + sum(unfinished)) * 2 as totalPoints
+from (select g.home_player_id                                         playerId,
+             sum(if(g.is_finished = 1, old_away_elo, 0))           as sumElo,
+             sum(if(g.is_finished = 1, 1, 0))                      as finished,
+             sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
+             sum(if(g.winner_id = g.home_player_id, 1, 0))                       as won,
+             sum(if(g.winner_id != g.home_player_id AND g.winner_id != 0, 1, 0)) as lost
+      from game g
+      where g.tournament_id = ?
+      group by g.home_player_id
+      union
+      select g.away_player_id                                         playerId,
+             sum(if(g.is_finished = 1, old_home_elo, 0))           as sumElo,
+             sum(if(g.is_finished = 1, 1, 0))                      as finished,
+             sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
+             sum(if(g.winner_id = g.away_player_id, 1, 0))                       as won,
+             sum(if(g.winner_id != g.away_player_id AND g.winner_id != 0, 1, 0)) as lost
+      from game g
+      where g.tournament_id = ?
+      group by g.away_player_id) p
+    join player p2 on p2.id = p.playerId
+join player_tournament_group ptg on ptg.player_id = p.playerId and ptg.tournament_id = ?
+join tournament_group tg on tg.id = ptg.group_id
+group by p.playerId
+order by ptg.group_id asc, performance desc`
+}
+
 func GetTournamentStandingsDaysQuery() string {
 	return GetTournamentStandingsBaseQuery() +
 		`and (g1.date_played is null or (g1.date_played < now() - interval ` +

@@ -126,23 +126,6 @@ func GetGameTimelineQuery() string {
 		join player p2 on g.away_player_id = p2.id`
 }
 
-func GetEloCache() string {
-	return `select
-                g.id,
-                home_player_id,
-                away_player_id,
-                winner_id,
-                home_score,
-                away_score,
-                old_home_elo,
-                old_away_elo,
-                new_home_elo,
-                new_away_elo
-            from game g join tournament t on g.tournament_id = t.id and t.is_official = 1
-            where g.is_finished = 1
-            order by g.tournament_id, g.date_played, g.date_of_match, g.id asc`
-}
-
 func GetEloHistory() string {
 	return `select g.id, g.home_player_id, g.away_player_id, g.home_score, g.away_score,
 			coalesce(g.old_home_elo, 0), 

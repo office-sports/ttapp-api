@@ -99,6 +99,21 @@ func GetTournamentStandingsById(writer http.ResponseWriter, request *http.Reques
 	json.NewEncoder(writer).Encode(standings)
 }
 
+// GetTournamentPerformanceById returns players performance for requested tournament
+func GetTournamentPerformanceById(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid tournament performance id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+	standings, err := data.GetTournamentPerformanceById(id)
+	checkErrHTTP(err, writer, "Unable to get tournament performance")
+
+	json.NewEncoder(writer).Encode(standings)
+}
+
 // GetTournamentInfo returns standings for requested tournament
 func GetTournamentInfo(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)

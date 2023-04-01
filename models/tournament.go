@@ -15,6 +15,34 @@ type Tournament struct {
 	Points       int    `json:"points"`
 }
 
+type TournamentPerformanceGroup struct {
+	Id              int                 `json:"group_id"`
+	Name            string              `json:"group_name"`
+	Abbreviation    string              `json:"group_abbreviation"`
+	GroupPromotions int                 `json:"group_promotions"`
+	GroupAvgElo     int                 `json:"group_avg_elo"`
+	Players         []PlayerPerformance `json:"players"`
+}
+
+type PlayerPerformance struct {
+	Pos               int    `json:"pos"`
+	PlayerId          int    `json:"player_id"`
+	PlayerName        string `json:"player_name"`
+	StartingElo       int    `json:"starting_elo"`
+	LastElo           int    `json:"last_elo"`
+	GroupId           int    `json:"group_id"`
+	GroupName         string `json:"group_name"`
+	GroupAbbreviation string `json:"group_abbreviation"`
+	Won               int    `json:"won"`
+	Lost              int    `json:"lost"`
+	Finished          int    `json:"finished"`
+	Unfinished        int    `json:"unfinished"`
+	Performance       int    `json:"performance"`
+	Points            int    `json:"points"`
+	TotalPoints       int    `json:"total_points"`
+	Form              []int  `json:"form"`
+}
+
 type TournamentGroup struct {
 	Id              int                    `json:"group_id"`
 	Name            string                 `json:"group_name"`

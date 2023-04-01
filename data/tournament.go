@@ -297,6 +297,105 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 	return groups, nil
 }
 
+func getPlayersTournamentElos(tid int) (map[int]int, map[int]int, map[int][]int, error) {
+	rows, err := models.DB.Query(queries.GetPlayersTournamentEloQuery(), tid, tid)
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer rows.Close()
+
+	elos := make(map[int]int, 0)
+	lelos := make(map[int]int, 0)
+	form := make(map[int][]int, 0)
+
+	gid, pid, elo, lelo, winnerId := 0, 0, 0, 0, 0
+	var loopElo, loopLelo int
+
+	for rows.Next() {
+		err := rows.Scan(&gid, &pid, &elo, &lelo, &winnerId)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		loopElo = elo
+		loopLelo = lelo
+
+		if elos[pid] == 0 {
+			elos[pid] = loopElo
+		}
+
+		lelos[pid] = loopLelo
+		form[pid] = append(form[pid], winnerId)
+	}
+
+	return elos, lelos, form, nil
+}
+
+func GetTournamentPerformanceById(id int) (map[int]*models.TournamentPerformanceGroup, error) {
+	rows, err := models.DB.Query(queries.GetTournamentPerformanceQuery(), id, id, id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	performances := make([]*models.PlayerPerformance, 0)
+	for rows.Next() {
+		p := new(models.PlayerPerformance)
+		err := rows.Scan(&p.Pos, &p.PlayerId, &p.PlayerName, &p.LastElo, &p.GroupId, &p.GroupName, &p.GroupAbbreviation,
+			&p.Won, &p.Lost, &p.Finished, &p.Unfinished, &p.Performance, &p.Points, &p.TotalPoints)
+		if err != nil {
+			return nil, err
+		}
+
+		performances = append(performances, p)
+	}
+
+	groupsEloSum := make(map[int]int)
+
+	pelos, lelos, form, err := getPlayersTournamentElos(id)
+
+	groups := make(map[int]*models.TournamentPerformanceGroup)
+	for _, gp := range performances {
+		gp.StartingElo = pelos[gp.PlayerId]
+		gp.LastElo = lelos[gp.PlayerId]
+		gp.Form = form[gp.PlayerId]
+
+		// reverse form so the latest games are first
+		for i, j := 0, len(gp.Form)-1; i < j; i, j = i+1, j-1 {
+			gp.Form[i], gp.Form[j] = gp.Form[j], gp.Form[i]
+		}
+
+		gid := gp.GroupId
+		if groups[gid] == nil {
+			gp.Pos = 1
+			gr := new(models.TournamentPerformanceGroup)
+			gr.Id = gid
+			gr.Name = gp.GroupName
+			gr.Abbreviation = gp.GroupAbbreviation
+			gr.Players = append(gr.Players, *gp)
+			groups[gid] = gr
+			groupsEloSum[gid] += gp.LastElo
+		} else {
+			gr := groups[gid]
+			gp.Pos = len(gr.Players) + 1
+			gr.Players = append(gr.Players, *gp)
+			groupsEloSum[gid] += gp.LastElo
+		}
+	}
+
+	for _, g := range groups {
+		g.GroupAvgElo = groupsEloSum[g.Id] / len(g.Players)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return groups, nil
+}
+
 func GetPreviousTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error) {
 	var setsPerGame float64 = 3.0
 	rows, err := models.DB.Query(queries.GetTournamentStandingsDaysQuery(), id, id, id, id)
