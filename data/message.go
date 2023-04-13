@@ -253,10 +253,15 @@ func CreateRecapMessage(recap []*models.GroupInfo) {
 
 	for _, group := range recap {
 		msg := ""
-		msg += getPositionsUpMessage(group)
-		msg += getPositionsStayMessage(group)
-		msg += getPositionsTopDropMessage(group)
-		msg += getPositionsTopClimbMessage(group)
+
+		if group.PositionsUp == 0 {
+			msg += "There were no position changes over the course of the week. "
+		} else {
+			msg += getPositionsUpMessage(group)
+			msg += getPositionsStayMessage(group)
+			msg += getPositionsTopDropMessage(group)
+			msg += getPositionsTopClimbMessage(group)
+		}
 
 		group.StatsMessage = msg
 
@@ -403,12 +408,16 @@ func getSpotsMessage(group *models.GroupInfo) string {
 					msg += "All of those competitors "
 				} else {
 					msg += strings.Title(strings.ToLower(digits[securedSpotsPlayoffs]))
-					msg += " of those competitors: "
+					msg += " competitors: "
 					msg += "|=" + securedSpotsPlayoffsPlayersNames + "=| "
 				}
-				msg += "advance to playoffs from " +
-					strings.Join(securedSpotsPositions, ", ") +
-					" positions in table, respectively. "
+				if len(securedSpotsPositions) != 0 {
+					msg += "advance to playoffs from " +
+						strings.Join(securedSpotsPositions, ", ") +
+						" positions in table, respectively. "
+				} else {
+					msg += "advance to playoffs, however their positions are still a subject to change. "
+				}
 				msg += "Congratulations! "
 			}
 		}
