@@ -272,7 +272,7 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 			} else {
 				player.PointsPotentialMax =
 					float64(player.Points+player.GamesRemaining*2) +
-						float64(player.GamesRemaining)*(setsPerGame/100)
+						float64(player.GamesRemaining)*((setsPerGame+float64(player.SetsDiff))/100)
 			}
 
 			groups[i].Players[j] = player
