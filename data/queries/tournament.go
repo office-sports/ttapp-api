@@ -3,15 +3,18 @@ package queries
 func GetTournamentsQuery() string {
 	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, count(distinct (t2.playerId)), count(g.id),
+			t.is_finished, participants, count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
-			    left join (
-			        select g.tournament_id tid, g.home_player_id playerId from game g
-			            where g.home_player_id != 0
-			        UNION ALL
-			        select g.tournament_id tid, g.away_player_id playerId from game g
-                        where g.away_player_id != 0
+			left join (
+                select gg.tid, count(distinct(gg.pid)) participants from (select g.home_player_id pid, g.tournament_id tid
+                                           from game g
+                                           where g.home_player_id != 0
+                                           UNION ALL
+                                           select g.away_player_id pid, g.tournament_id tid
+                                           from game g
+                                           where g.away_player_id != 0) gg
+                group by gg.tid
             ) t2 on t2.tid = t.id
 			left join game g on g.tournament_id = t.id
 			left join (
@@ -22,7 +25,7 @@ func GetTournamentsQuery() string {
             ) s on s.tid = t.id
 			where t.is_official = 1
 			group by t.id, t.start_time
-			order by t.start_time desc`
+			order by t.start_time desc;`
 }
 
 func GetLiveTournamentsQuery() string {
