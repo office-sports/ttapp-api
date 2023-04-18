@@ -3,16 +3,23 @@ package queries
 func GetTournamentsQuery() string {
 	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
+			t.is_finished, count(distinct (t2.playerId)), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
+			    left join (
+			        select g.tournament_id tid, g.home_player_id playerId from game g
+			            where g.home_player_id != 0
+			        UNION ALL
+			        select g.tournament_id tid, g.away_player_id playerId from game g
+                        where g.away_player_id != 0
+            ) t2 on t2.tid = t.id
 			left join game g on g.tournament_id = t.id
 			left join (
 			    select g.tournament_id as tid, count(s.id) as sets, sum(s.home_points + s.away_points) as points
                 from scores s
                 join game g on s.game_id = g.id
                 group by g.tournament_id
-            ) s on s.tid = t.id			
+            ) s on s.tid = t.id
 			where t.is_official = 1
 			group by t.id, t.start_time
 			order by t.start_time desc`
