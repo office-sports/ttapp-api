@@ -444,6 +444,18 @@ func SaveGameScore(gr models.GameSetResults) {
 	// update elo
 	UpdateGameElo(gr.GameId)
 
+	// fetch the game to check if it is finished
+	g, _ := GetGameById(gr.GameId)
+
+	// if this is playoffs game, update next one, if needed
+	if g.Name != "" && g.PlayOrder > 0 {
+		if g.WinnerId == g.HomePlayerId {
+			UpdateNextPlayoffsGame(g.HomePlayerId, g.AwayPlayerId, g.PlayOrder, g.TournamentId)
+		} else if g.WinnerId == g.AwayPlayerId {
+			UpdateNextPlayoffsGame(g.AwayPlayerId, g.HomePlayerId, g.PlayOrder, g.TournamentId)
+		}
+	}
+
 	ann, err := IsAnnounced(gr.GameId)
 	if err != nil {
 		log.Println("Error fetching announcement: ", err)
