@@ -3,7 +3,7 @@ package queries
 func GetTournamentsQuery() string {
 	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, participants, count(g.id),
+			t.is_finished, coalesce(participants, 0), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
 			left join (
