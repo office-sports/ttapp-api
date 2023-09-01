@@ -119,7 +119,7 @@ func GetTournamentStandingsBaseQuery() string {
 
 func GetTournamentStandingsQuery() string {
 	return GetTournamentStandingsBaseQuery() + `group by ptg.player_id
-			order by ptg.group_id asc, points desc, setDf desc, u.df desc`
+			order by ptg.group_id asc, points desc, setDf desc, u.df desc, p.id asc`
 }
 
 func GetPlayersTournamentEloQuery() string {
@@ -186,7 +186,7 @@ func GetTournamentStandingsDaysQuery() string {
 		`if(WEEKDAY(CURDATE()) >= 5, 7, WEEKDAY(CURDATE()) + 8) ` +
 		` day))
 		 group by ptg.player_id
-		 order by ptg.group_id asc, points desc, setDf desc, u.df desc`
+		 order by ptg.group_id asc, points desc, setDf desc, u.df desc, p.id asc`
 }
 
 func GetTournamentGroupsQuery() string {

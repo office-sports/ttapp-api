@@ -381,6 +381,10 @@ func getSpotsMessage(group *models.GroupInfo) string {
 	securedSpotsPlayersNames = strings.Join(securedSpotsPlayers, ", ")
 	securedSpotsPlayoffsPlayersNames = strings.Join(securedSpotsPlayoffsPlayers, ", ")
 
+	if group.GamesPlayed < len(group.PlayerInfo)/2 {
+		return ""
+	}
+
 	// |NUM| of the most skilled
 	msg := "We'll have total of " + digits[group.GroupPromotions] + " players advancing to playoffs from |GROUP|. "
 	msg = strings.Replace(msg, "|GROUP|", group.Name, -1)
