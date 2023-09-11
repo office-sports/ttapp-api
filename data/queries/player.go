@@ -149,7 +149,8 @@ func GetLeadersQuery() string {
 					   GROUP BY g.away_player_id) p
 		join player pp on pp.id = p.playerId
 			   where pp.active = 1
-		group by playerId`
+		group by playerId
+		having g_lost > 0`
 }
 
 func GetPlayerLastEloDataQuery() string {
