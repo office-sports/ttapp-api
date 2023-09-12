@@ -10,10 +10,12 @@ func GetPlayersDataQuery() string {
 				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
 				p.office_id as officeId,
 				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage,
+				coalesce(sum(if(g.home_player_id = p.id, s.home_points, s.away_points)) / count(s.id), 0) as pps,
 				p.active
 			from player p
 			left join game g on p.id in (g.home_player_id, g.away_player_id) and g.is_finished = 1
 			left join tournament t on t.id = g.tournament_id and t.is_official = 1
+			left join scores s on s.game_id = g.id
 			group by p.id, p.name
 			order by p.name`
 }
@@ -24,10 +26,12 @@ func GetPlayerDataQuery() string {
 				sum(if(p.id = g.winner_id, 1, 0)) as wins, 
 				sum(if(g.winner_id = 0, 1, 0)) as draws, 
 				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
-				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage
+				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage,
+				coalesce(sum(if(g.home_player_id = p.id, s.home_points, s.away_points)) / count(s.id), 0) as pps
 			from player p 
 			left join game g on p.id in (g.home_player_id, g.away_player_id) and g.is_finished = 1 
 			left join tournament t on g.tournament_id = t.id and t.is_official = 1 
+			left join scores s on s.game_id = g.id
 			where p.id = ?  
 			group by p.id`
 }

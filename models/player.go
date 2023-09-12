@@ -35,6 +35,7 @@ type Player struct {
 	NotDrawPercentage float32  `json:"not_draw_percentage"`
 	LossPercentage    float32  `json:"loss_percentage"`
 	NotLossPercentage float32  `json:"not_loss_percentage"`
+	PPS               float32  `json:"pps"`
 	EloHistory        [][2]int `json:"elo_history"`
 	Active            int      `json:"active"`
 }

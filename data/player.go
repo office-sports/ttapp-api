@@ -17,7 +17,7 @@ func GetPlayers() ([]*models.Player, error) {
 	for rows.Next() {
 		p := new(models.Player)
 		err := rows.Scan(&p.ID, &p.Name, &p.Nickname, &p.Elo, &p.OldElo, &p.EloChange, &p.GamesPlayed,
-			&p.Wins, &p.Draws, &p.Losses, &p.OfficeId, &p.WinPercentage, &p.Active)
+			&p.Wins, &p.Draws, &p.Losses, &p.OfficeId, &p.WinPercentage, &p.PPS, &p.Active)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func GetLeaders() ([]*models.Leader, error) {
 func GetPlayerById(id int) (*models.Player, error) {
 	p := new(models.Player)
 	err := models.DB.QueryRow(queries.GetPlayerDataQuery(), id).
-		Scan(&p.ID, &p.Name, &p.GamesPlayed, &p.ProfilePicUrl, &p.Elo, &p.Wins, &p.Draws, &p.Losses, &p.WinPercentage)
+		Scan(&p.ID, &p.Name, &p.GamesPlayed, &p.ProfilePicUrl, &p.Elo, &p.Wins, &p.Draws, &p.Losses, &p.WinPercentage, &p.PPS)
 
 	if err != nil {
 		return nil, err
