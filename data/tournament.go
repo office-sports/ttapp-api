@@ -172,8 +172,7 @@ func GetTournamentsStatistics() ([]*models.TournamentStatistics, error) {
 	tournamentsStatistics := make([]*models.TournamentStatistics, 0)
 	for rows.Next() {
 		t := new(models.TournamentStatistics)
-		err := rows.Scan(&t.Id, &t.Name, &t.Scheduled, &t.Played, &t.Divisions, &t.SetsPlayed, &t.PointsScored,
-			&t.Participants, &t.AvgPointsPerMatch)
+		err := rows.Scan(&t.Id, &t.Name, &t.Divisions, &t.SetsPlayed, &t.PointsScored, &t.AvgPointsPerMatch)
 		if err != nil {
 			return nil, err
 		}

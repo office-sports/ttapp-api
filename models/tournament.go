@@ -143,10 +143,7 @@ type TournamentStatistics struct {
 	Id                int     `json:"id"`
 	Name              string  `json:"name"`
 	Divisions         int     `json:"divisions"`
-	Scheduled         int     `json:"scheduled"`
-	Played            int     `json:"played"`
 	SetsPlayed        int     `json:"sets_played"`
-	Participants      int     `json:"participants"`
 	PointsScored      int     `json:"points_scored"`
 	AvgPointsPerMatch float32 `json:"avg_points_per_match"`
 }

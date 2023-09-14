@@ -93,10 +93,9 @@ func GetStatsLeastPointsLostInGameQuery() string {
 }
 
 func GetTournamentsStatisticsQuery() string {
-	return `select t.id, t.name, count(g.id) as scheduled,
-				   sum(if(g.is_finished = 1, 1, 0)) as played,
+	return `select t.id, t.name, 
 				   tg.divisions, sum(g.home_score + g.away_score) as setsPlayed,
-				   scores.points, count(distinct(g.home_player_id)) + count(distinct(g.away_player_id)) as participants,
+				   scores.points,
 				   scores.points / sum(if(g.is_finished = 1, 1, 0)) as pointsPerMatch
 			from tournament t
 			join game g on g.tournament_id = t.id
