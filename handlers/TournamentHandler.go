@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/office-sports/ttapp-api/data"
 	"github.com/office-sports/ttapp-api/models"
@@ -10,6 +11,40 @@ import (
 	"net/http"
 	"strconv"
 )
+
+// GetTournamentPlayersStatistics returns array of tournaments
+func GetTournamentPlayersStatistics(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid tournament id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+
+	SetHeaders(writer)
+	md, err := data.GetTournamentPlayersStatistics(id)
+	if errors.Is(err, sql.ErrNoRows) {
+		json.NewEncoder(writer).Encode(new(models.TournamentPlayerStatistics))
+		return
+	}
+	checkErrHTTP(err, writer, "Unable to get tournament players statistics")
+
+	json.NewEncoder(writer).Encode(md)
+}
+
+// GetTournamentsStatistics returns array of tournaments
+func GetTournamentsStatistics(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	md, err := data.GetTournamentsStatistics()
+	if errors.Is(err, sql.ErrNoRows) {
+		json.NewEncoder(writer).Encode(new(models.TournamentStatistics))
+		return
+	}
+	checkErrHTTP(err, writer, "Unable to get tournaments statistics")
+
+	json.NewEncoder(writer).Encode(md)
+}
 
 // GetTournaments returns array of tournaments
 func GetTournaments(writer http.ResponseWriter, request *http.Request) {

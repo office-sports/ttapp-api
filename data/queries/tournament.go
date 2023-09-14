@@ -1,5 +1,117 @@
 package queries
 
+func GetStatsLongestSetStreak() string {
+	return `select g.id, g.home_player_id, g.away_player_id, g.winner_id, DATE(g.date_played),
+				   s.id, if (s.home_points > s.away_points, 1, 0) as homeWon, if (s.home_points < s.away_points, 1, 0) as awayWon
+			from game g
+			join scores s on s.game_id = g.id
+			where g.tournament_id = ?
+			and g.is_finished = 1
+			order by g.date_played, s.set_number`
+}
+
+func GetStatsMostPointsGameQuery() string {
+	return `select g.id, sum(s.home_points) + sum(s.away_points) as points,
+				   hp.name, ap.name
+			from game g
+			join scores s on s.game_id = g.id
+			join player hp on hp.id = g.home_player_id
+			join player ap on ap.id = g.away_player_id
+			where g.tournament_id = ?
+			and g.is_finished = 1
+			group by g.id
+			order by points desc
+			limit 1;`
+}
+
+func GetStatsLeastPointsGameQuery() string {
+	return `select g.id, sum(s.home_points) + sum(s.away_points) as points,
+				   hp.name, ap.name
+			from game g
+			join scores s on s.game_id = g.id
+			join player hp on hp.id = g.home_player_id
+			join player ap on ap.id = g.away_player_id
+			where g.tournament_id = ?
+			and g.is_finished = 1
+			group by g.id
+			order by points
+			limit 1;`
+}
+
+func GetStatsMostPointsInGameQuery() string {
+	return `select g.id, sum(if(g.winner_id = g.home_player_id, s.home_points, s.away_points)) as pointsScored,
+				   if(g.winner_id = g.home_player_id, hp.id, ap.id) as playerId,
+				   if(g.winner_id = g.home_player_id, hp.name, ap.name) as playerName
+			from game g
+			join scores s on s.game_id = g.id
+			join player hp on hp.id = g.home_player_id
+			join player ap on ap.id = g.away_player_id
+			where g.tournament_id = ?
+			group by g.id
+			order by pointsScored desc
+			limit 1;`
+}
+
+func GetStatsEloGainQuery() string {
+	return `select
+				g.id, GREATEST((g.new_home_elo - g.old_home_elo), (g.new_away_elo - g.old_away_elo)) as eloGain,
+				g.winner_id as playerId, p.name
+			from game g
+			join player p on p.id = g.winner_id
+			where g.tournament_id = ?
+			and g.is_finished = 1
+			order by eloGain desc
+			limit 1;`
+}
+
+func GetStatsEloLostQuery() string {
+	return `select
+				g.id, LEAST((g.new_home_elo - g.old_home_elo), (g.new_away_elo - g.old_away_elo)) as eloGain,
+				if(g.winner_id = g.home_player_id, ap.id, hp.id) as playerId,
+				if(g.winner_id = g.home_player_id, ap.name, hp.name) as playerName
+			from game g
+			join player hp on hp.id = g.home_player_id
+			join player ap on ap.id = g.away_player_id
+			where g.tournament_id = ?
+			and g.is_finished = 1
+			order by eloGain asc
+			limit 1;`
+}
+
+func GetStatsLeastPointsLostInGameQuery() string {
+	return `select g.id, sum(if(g.winner_id = g.home_player_id, s.away_points, s.home_points)) as pointsLost,
+				   if(g.winner_id = g.home_player_id, hp.id, ap.id) as playerId,
+				   if(g.winner_id = g.home_player_id, hp.name, ap.name) as playerName
+			from game g
+			join scores s on s.game_id = g.id
+			join player hp on hp.id = g.home_player_id
+			join player ap on ap.id = g.away_player_id
+			where g.tournament_id = ?
+			group by g.id
+			order by pointsLost
+			limit 1;`
+}
+
+func GetTournamentsStatisticsQuery() string {
+	return `select t.id, t.name, count(g.id) as scheduled,
+				   sum(if(g.is_finished = 1, 1, 0)) as played,
+				   tg.divisions, sum(g.home_score + g.away_score) as setsPlayed,
+				   scores.points, count(distinct(g.home_player_id)) + count(distinct(g.away_player_id)) as participants,
+				   scores.points / sum(if(g.is_finished = 1, 1, 0)) as pointsPerMatch
+			from tournament t
+			join game g on g.tournament_id = t.id
+			join (select tg.tournament_id, count(tg.id) as divisions
+				  from tournament_group tg
+				  group by tg.tournament_id
+				  ) tg on tg.tournament_id = t.id
+			join (select g.tournament_id, sum(s.home_points) + sum(s.away_points) as points
+				  from scores s
+				  join game g on g.id = s.game_id
+				  group by g.tournament_id
+				  ) scores on scores.tournament_id = g.tournament_id
+			group by t.id;`
+}
+
 func GetTournamentsQuery() string {
 	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,

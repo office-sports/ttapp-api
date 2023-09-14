@@ -3,8 +3,190 @@ package data
 import (
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
+	"sort"
 	"strings"
 )
+
+// GetTournamentPlayersStatistics returns array of player stats
+func GetTournamentPlayersStatistics(id int) (*models.TournamentPlayerStatistics, error) {
+	t := new(models.TournamentPlayerStatistics)
+
+	var vI, gid int
+	var pid int
+	var pName, p2Name string
+	err := models.DB.QueryRow(queries.GetStatsMostPointsInGameQuery(), id).Scan(&gid, &vI, &pid, &pName)
+	if err != nil {
+		return nil, err
+	}
+
+	t.MostPointsGid = gid
+	t.MostPointsInGame = vI
+	t.MostPointsInGamePlayerId = pid
+	t.MostPointsInGamePlayerName = pName
+
+	err = models.DB.QueryRow(queries.GetStatsLeastPointsLostInGameQuery(), id).Scan(&gid, &vI, &pid, &pName)
+	if err != nil {
+		return nil, err
+	}
+
+	t.LeastPointsGid = gid
+	t.LeastPointsLostInGame = vI
+	t.LeastPointsLostInGamePlayerId = pid
+	t.LeastPointsLostInGamePlayerName = pName
+
+	err = models.DB.QueryRow(queries.GetStatsEloGainQuery(), id).Scan(&gid, &vI, &pid, &pName)
+	if err != nil {
+		return nil, err
+	}
+
+	t.MostEloGainGid = gid
+	t.MostEloGain = vI
+	t.MostEloGainPlayerId = pid
+	t.MostEloGainPlayerName = pName
+
+	err = models.DB.QueryRow(queries.GetStatsEloLostQuery(), id).Scan(&gid, &vI, &pid, &pName)
+	if err != nil {
+		return nil, err
+	}
+
+	t.MostEloLostGid = gid
+	t.MostEloLost = vI
+	t.MostEloLostPlayerId = pid
+	t.MostEloLostPlayerName = pName
+
+	err = models.DB.QueryRow(queries.GetStatsMostPointsGameQuery(), id).Scan(&gid, &vI, &pName, &p2Name)
+	if err != nil {
+		return nil, err
+	}
+
+	t.MostPointsGameGid = gid
+	t.MostPointsGame = vI
+	t.MostPointsGameHomeName = pName
+	t.MostPointsGameAwayName = p2Name
+
+	err = models.DB.QueryRow(queries.GetStatsLeastPointsGameQuery(), id).Scan(&gid, &vI, &pName, &p2Name)
+	if err != nil {
+		return nil, err
+	}
+
+	t.LeastPointsGameGid = gid
+	t.LeastPointsGame = vI
+	t.LeastPointsGameHomeName = pName
+	t.LeastPointsGameAwayName = p2Name
+
+	// Get longest set streak by player
+	var hpid, apid, winid, sid, hwon, awon int
+	var dom string
+
+	setStreakByPlayerID := make(map[int]int)
+	currentSetStreakByPlayerID := make(map[int]int)
+
+	rows, err := models.DB.Query(queries.GetStatsLongestSetStreak(), id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rowCount := 0
+	maxStreak := 0
+	for rows.Next() {
+		err := rows.Scan(&gid, &hpid, &apid, &winid, &dom, &sid, &hwon, &awon)
+		if err != nil {
+			return nil, err
+		}
+
+		// If there are no player mappings, add them to both general and current
+		if rowCount == 0 {
+			setStreakByPlayerID[hpid] = 0
+			currentSetStreakByPlayerID[hpid] = 0
+		}
+		if rowCount == 0 {
+			setStreakByPlayerID[apid] = 0
+			currentSetStreakByPlayerID[apid] = 0
+		}
+
+		if hwon == 1 {
+			currentSetStreakByPlayerID[hpid]++
+			currentSetStreakByPlayerID[apid] = 0
+
+			if currentSetStreakByPlayerID[hpid] >= setStreakByPlayerID[hpid] {
+				setStreakByPlayerID[hpid] = currentSetStreakByPlayerID[hpid]
+			}
+			if setStreakByPlayerID[hpid] >= maxStreak {
+				maxStreak = setStreakByPlayerID[hpid]
+			}
+		} else if awon == 1 {
+			currentSetStreakByPlayerID[apid]++
+			currentSetStreakByPlayerID[hpid] = 0
+
+			if currentSetStreakByPlayerID[apid] >= setStreakByPlayerID[apid] {
+				setStreakByPlayerID[apid] = currentSetStreakByPlayerID[apid]
+			}
+			if setStreakByPlayerID[apid] >= maxStreak {
+				maxStreak = setStreakByPlayerID[apid]
+			}
+		}
+
+		rowCount++
+	}
+
+	keys := make([]int, 0, len(setStreakByPlayerID))
+
+	for key := range setStreakByPlayerID {
+		keys = append(keys, key)
+	}
+	sort.SliceStable(keys, func(i, j int) bool {
+		return setStreakByPlayerID[keys[i]] >= setStreakByPlayerID[keys[j]]
+	})
+
+	players, err := GetPlayers()
+	if err != nil {
+		return nil, err
+	}
+
+	playersIndexed := make(map[int]*models.Player)
+	for _, p := range players {
+		playersIndexed[p.ID] = p
+	}
+
+	t.MaxSetStreak = maxStreak
+
+	for _, k := range keys {
+		if setStreakByPlayerID[k] == maxStreak {
+			t.MaxSetStreakPlayers = append(t.MaxSetStreakPlayers, *playersIndexed[k])
+		}
+	}
+
+	return t, nil
+}
+
+// GetTournamentsStatistics returns array of tournament models
+func GetTournamentsStatistics() ([]*models.TournamentStatistics, error) {
+	rows, err := models.DB.Query(queries.GetTournamentsStatisticsQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tournamentsStatistics := make([]*models.TournamentStatistics, 0)
+	for rows.Next() {
+		t := new(models.TournamentStatistics)
+		err := rows.Scan(&t.Id, &t.Name, &t.Scheduled, &t.Played, &t.Divisions, &t.SetsPlayed, &t.PointsScored,
+			&t.Participants, &t.AvgPointsPerMatch)
+		if err != nil {
+			return nil, err
+		}
+
+		tournamentsStatistics = append(tournamentsStatistics, t)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tournamentsStatistics, nil
+}
 
 // GetTournaments returns array of tournament models
 func GetTournaments() ([]*models.Tournament, error) {

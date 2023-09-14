@@ -138,3 +138,44 @@ type PositionCandidate struct {
 	PlayerNames []string `json:"player_names"`
 	Secured     int      `json:"secured"`
 }
+
+type TournamentStatistics struct {
+	Id                int     `json:"id"`
+	Name              string  `json:"name"`
+	Divisions         int     `json:"divisions"`
+	Scheduled         int     `json:"scheduled"`
+	Played            int     `json:"played"`
+	SetsPlayed        int     `json:"sets_played"`
+	Participants      int     `json:"participants"`
+	PointsScored      int     `json:"points_scored"`
+	AvgPointsPerMatch float32 `json:"avg_points_per_match"`
+}
+
+type TournamentPlayerStatistics struct {
+	MostPointsGid                   int      `json:"most_points_gid"`
+	MostPointsInGame                int      `json:"most_points_in_game"`
+	MostPointsInGamePlayerId        int      `json:"most_points_in_game_player_id"`
+	MostPointsInGamePlayerName      string   `json:"most_points_in_game_player_name"`
+	LeastPointsGid                  int      `json:"least_points_gid"`
+	LeastPointsLostInGame           int      `json:"least_points_lost_in_game"`
+	LeastPointsLostInGamePlayerId   int      `json:"least_points_lost_in_game_player_id"`
+	LeastPointsLostInGamePlayerName string   `json:"least_points_lost_in_game_player_name"`
+	MostEloGainGid                  int      `json:"most_elo_gid"`
+	MostEloGain                     int      `json:"most_elo_gain"`
+	MostEloGainPlayerId             int      `json:"most_elo_gain_player_id"`
+	MostEloGainPlayerName           string   `json:"most_elo_gain_player_name"`
+	MostEloLostGid                  int      `json:"most_elo_lost_gid"`
+	MostEloLost                     int      `json:"most_elo_lost"`
+	MostEloLostPlayerId             int      `json:"most_elo_lost_player_id"`
+	MostEloLostPlayerName           string   `json:"most_elo_lost_player_name"`
+	MostPointsGameGid               int      `json:"most_points_game_gid"`
+	MostPointsGame                  int      `json:"most_points_game"`
+	MostPointsGameHomeName          string   `json:"most_points_game_home_name"`
+	MostPointsGameAwayName          string   `json:"most_points_game_away_name"`
+	LeastPointsGameGid              int      `json:"least_points_game_gid"`
+	LeastPointsGame                 int      `json:"least_points_game"`
+	LeastPointsGameHomeName         string   `json:"least_points_game_home_name"`
+	LeastPointsGameAwayName         string   `json:"least_points_game_away_name"`
+	MaxSetStreak                    int      `json:"max_set_streak"`
+	MaxSetStreakPlayers             []Player `json:"max_set_streak_players"`
+}
