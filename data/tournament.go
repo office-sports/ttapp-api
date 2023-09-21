@@ -257,6 +257,40 @@ func GetTournamentById(id int) (*models.Tournament, error) {
 	return t, nil
 }
 
+// GetTournamentGroupSchedule returns array of games for requested tournament id
+func GetTournamentGroupSchedule(tid int, gid int) ([]*models.Game, error) {
+	if gid == 0 {
+		gid = 1000
+	}
+	q := queries.GetBaseTournamentGroupScheduleQuery()
+
+	rows, err := models.DB.Query(q, tid, gid)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]*models.Game, 0)
+	for rows.Next() {
+		g := new(models.Game)
+		err := rows.Scan(&g.TournamentId, &g.OfficeId, &g.MatchId, &g.GroupName, &g.DateOfMatch,
+			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName,
+			&g.HomeScoreTotal, &g.AwayScoreTotal, &g.Mode)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, g)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // GetTournamentSchedule returns array of games for requested tournament id
 func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 	if num == 0 {
@@ -283,7 +317,7 @@ func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 		g := new(models.Game)
 		err := rows.Scan(&g.TournamentId, &g.OfficeId, &g.MatchId, &g.GroupName, &g.DateOfMatch,
 			&g.HomePlayerId, &g.AwayPlayerId, &g.HomePlayerName, &g.AwayPlayerName,
-			&g.HomeScoreTotal, &g.AwayScoreTotal)
+			&g.HomeScoreTotal, &g.AwayScoreTotal, &g.Mode)
 		if err != nil {
 			return nil, err
 		}
