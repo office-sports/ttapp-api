@@ -183,13 +183,40 @@ func GetBaseTournamentScheduleQuery() string {
 			p1.name                                                    homePlayerName,
 			p2.name                                                 as awayPlayerName,
 			g.home_score                                            as homeScoreTotal,
-			g.away_score                                            as awayScoreTotal
+			g.away_score                                            as awayScoreTotal,
+			gm.max_sets as bo
 			from game g
 			join game_mode gm on gm.id = g.game_mode_id
 			left join player p1 on p1.id = g.home_player_id
 			left join player p2 on p2.id = g.away_player_id
 			left join tournament_group tg on tg.id = g.tournament_group_id
 			left join tournament tt on tt.id = g.tournament_id`
+}
+
+func GetBaseTournamentGroupScheduleQuery() string {
+	return `select
+			g.tournament_id                                         as tournamentId,
+			tt.office_id                                            as officeId,
+			g.id as matchId,
+			tg.name                                                 as groupName,
+			DATE(g.date_of_match)                                   as dateOfMatch,
+			p1.id                                                   as homePlayerId,
+			p2.id                                                      awayPlayerId,
+			p1.name                                                    homePlayerName,
+			p2.name                                                 as awayPlayerName,
+			g.home_score                                            as homeScoreTotal,
+			g.away_score                                            as awayScoreTotal,
+			gm.max_sets as bo
+			from game g
+			join game_mode gm on gm.id = g.game_mode_id
+			left join player p1 on p1.id = g.home_player_id
+			left join player p2 on p2.id = g.away_player_id
+			left join tournament_group tg on tg.id = g.tournament_group_id
+			left join tournament tt on tt.id = g.tournament_id
+			where g.is_finished = 0 and tt.is_finished = 0
+			and g.tournament_id = ?
+			and tg.id = ?
+			group by g.id order by g.date_of_match, g.id asc`
 }
 
 func GetTournamentStandingsBaseQuery() string {
