@@ -14,7 +14,8 @@ https://go.dev/doc/tutorial/getting-started
 
 2. MySQL database instance with database schema.
 
-empty database schema can be found in `config/empty_schema.yaml`
+empty database schema can be found in `config/empty_schema.sql`, 
+minimal schema for example tournament with single match in `config/minimal_schema.sql` 
 
 ## Running API
 
