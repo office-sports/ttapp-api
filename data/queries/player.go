@@ -36,6 +36,27 @@ func GetPlayerDataQuery() string {
 			group by p.id`
 }
 
+func GetPlayerOpponentsQuery() string {
+	return `select
+				count(g.id) as games,
+				if (g.home_player_id = ?, g.away_player_id, g.home_player_id) as opponent,
+				if (g.home_player_id = ?, pa.name, ph.name) as opponentName,
+				sum(if (g.winner_id = ?, 1, 0)) as wins,
+				sum(if (g.winner_id = 0, 1, 0)) as draws,
+				sum(if (g.winner_id != ? and g.winner_id != 0, 1, 0)) as losses,
+    			sum(if (g.winner_id != ? and g.is_walkover = 1, 1, 0)) as playerWalkovers,
+				sum(if (g.winner_id = ? and g.is_walkover = 1, 1, 0)) as opponentWalkovers
+			from game g
+				join tournament t on t.id = g.tournament_id
+			join player ph on ph.id = g.home_player_id
+			join player pa on pa.id = g.away_player_id
+			where ? in (g.home_player_id, g.away_player_id)
+			and t.is_official = 1
+			and g.is_finished = 1
+			group by opponent
+			order by count(g.id) desc`
+}
+
 func GetPlayerEloHistoryQuery() string {
 	return `select 
     		coalesce(if (p.id = g.home_player_id, g.new_home_elo, g.new_away_elo), 0) as elo

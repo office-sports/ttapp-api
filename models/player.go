@@ -45,3 +45,15 @@ type PlayerCache struct {
 	OldElo      int `json:"old_elo"`
 	GamesPlayed int `json:"games_played"`
 }
+
+type PlayerOpponent struct {
+	Id                int    `json:"id"`
+	Games             int    `json:"games"`
+	OpponentId        int    `json:"opponent_id"`
+	OpponentName      string `json:"opponent_name"`
+	Wins              int    `json:"wins"`
+	Draws             int    `json:"draws"`
+	Losses            int    `json:"losses"`
+	PlayerWalkovers   int    `json:"player_walkovers"`
+	OpponentWalkovers int    `json:"opponent_walkovers"`
+}

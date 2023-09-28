@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/office-sports/ttapp-api/data"
 	"github.com/office-sports/ttapp-api/models"
@@ -70,11 +71,26 @@ func GetPlayerScheduleById(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(player)
 }
 
+// GetPlayerOpponentsById returns array of player opponents
+func GetPlayerOpponentsById(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid player id")
+		http.Error(writer, "Invalid player id", http.StatusBadRequest)
+		return
+	}
+	player, err := data.GetPlayerOpponentsById(id)
+	checkErrHTTP(err, writer, "Unable to get player opponents")
+
+	json.NewEncoder(writer).Encode(player)
+}
+
 // GetLeaders returns all-time leaders
 func GetLeaders(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetLeaders()
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		json.NewEncoder(writer).Encode(new(models.Leader))
 		return
 	}

@@ -34,6 +34,7 @@ func main() {
 	router.HandleFunc("/players/{id}", handlers.GetPlayerById).Methods("GET")
 	router.HandleFunc("/players/{id}/results", handlers.GetPlayerResultsById).Methods("GET")
 	router.HandleFunc("/players/{id}/schedule", handlers.GetPlayerScheduleById).Methods("GET")
+	router.HandleFunc("/players/{id}/opponents", handlers.GetPlayerOpponentsById).Methods("GET")
 
 	// tournament routes
 	router.HandleFunc("/tournaments", handlers.GetTournaments).Methods("GET")

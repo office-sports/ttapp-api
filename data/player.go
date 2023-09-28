@@ -163,3 +163,32 @@ func SetGameResultSetScores(g *models.GameResult, setNumber int, hs *int, as *in
 		g.SetScores = append(g.SetScores, *s)
 	}
 }
+
+// GetPlayerOpponentsById returns player opponents array
+func GetPlayerOpponentsById(id int) ([]*models.PlayerOpponent, error) {
+	rows, err := models.DB.Query(queries.GetPlayerOpponentsQuery(), id, id, id, id, id, id, id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	opponents := make([]*models.PlayerOpponent, 0)
+	for rows.Next() {
+		p := new(models.PlayerOpponent)
+
+		err := rows.Scan(&p.Games, &p.OpponentId, &p.OpponentName, &p.Wins, &p.Draws, &p.Losses, &p.PlayerWalkovers, &p.OpponentWalkovers)
+		p.Id = id
+		if err != nil {
+			return nil, err
+		}
+
+		opponents = append(opponents, p)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return opponents, nil
+}
