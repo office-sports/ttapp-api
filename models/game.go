@@ -12,6 +12,7 @@ type Game struct {
 	AwayPlayerName string `json:"away_player_name"`
 	HomeScoreTotal int    `json:"home_score_total"`
 	AwayScoreTotal int    `json:"away_score_total"`
+	Mode           *int   `json:"mode"`
 }
 
 type GameResult struct {
