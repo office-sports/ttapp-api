@@ -559,7 +559,7 @@ func GetTournamentPerformanceById(id int) (map[int]*models.TournamentPerformance
 	for rows.Next() {
 		p := new(models.PlayerPerformance)
 		err := rows.Scan(&p.Pos, &p.PlayerId, &p.PlayerName, &p.LastElo, &p.GroupId, &p.GroupName, &p.GroupAbbreviation,
-			&p.Won, &p.Lost, &p.Finished, &p.Unfinished, &p.Performance, &p.Points, &p.TotalPoints)
+			&p.Won, &p.Draw, &p.Lost, &p.Finished, &p.Unfinished, &p.Performance, &p.Points, &p.TotalPoints)
 		if err != nil {
 			return nil, err
 		}

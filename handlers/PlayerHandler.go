@@ -16,7 +16,7 @@ import (
 func GetPlayers(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetPlayers()
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		err := json.NewEncoder(writer).Encode(new(models.Player))
 		checkErrSimple(err)
 		return

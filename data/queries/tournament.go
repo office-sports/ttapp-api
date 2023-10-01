@@ -287,35 +287,36 @@ func GetPlayersTournamentEloQuery() string {
 }
 
 func GetTournamentPerformanceQuery() string {
-	return `select 
-    	0 pos, p.playerId, p2.name playerName, p2.current_elo, ptg.group_id, tg.name groupName, tg.abbreviation,
-       sum(won) as won, sum(lost) as lost, sum(finished) as finished, sum(unfinished) as unfinished,
-       if (sum(finished) = 0, 0, round((sum(p.sumElo) + 400 * (sum(won) - sum(lost)))/sum(finished))) as performance,
-       (sum(won)*2) as points, (sum(finished) + sum(unfinished)) * 2 as totalPoints
-from (select g.home_player_id                                         playerId,
-             sum(if(g.is_finished = 1, old_away_elo, 0))           as sumElo,
-             sum(if(g.is_finished = 1, 1, 0))                      as finished,
-             sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
-             sum(if(g.winner_id = g.home_player_id, 1, 0))                       as won,
-             sum(if(g.winner_id != g.home_player_id AND g.winner_id != 0, 1, 0)) as lost
-      from game g
-      where g.tournament_id = ?
-      group by g.home_player_id
-      union
-      select g.away_player_id                                         playerId,
-             sum(if(g.is_finished = 1, old_home_elo, 0))           as sumElo,
-             sum(if(g.is_finished = 1, 1, 0))                      as finished,
-             sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
-             sum(if(g.winner_id = g.away_player_id, 1, 0))                       as won,
-             sum(if(g.winner_id != g.away_player_id AND g.winner_id != 0, 1, 0)) as lost
-      from game g
-      where g.tournament_id = ?
-      group by g.away_player_id) p
-    join player p2 on p2.id = p.playerId
-join player_tournament_group ptg on ptg.player_id = p.playerId and ptg.tournament_id = ?
-join tournament_group tg on tg.id = ptg.group_id
-group by p.playerId
-order by ptg.group_id asc, performance desc`
+	return `select
+					0 pos, p.playerId, p2.name playerName, p2.current_elo,
+					tg.id as group_id, tg.name groupName, tg.abbreviation,
+				   sum(won) as won, (sum(finished - (won + lost))) as draw, sum(lost) as lost, sum(finished) as finished, sum(unfinished) as unfinished,
+				   if (sum(finished) = 0, 0, round((sum(p.sumElo) + 400 * (sum(won) - sum(lost)))/sum(finished))) as performance,
+				   (sum(won)*2) as points, (sum(finished) + sum(unfinished)) * 2 as totalPoints
+			from (select g.tournament_group_id, g.home_player_id                                         playerId,
+						 sum(if(g.is_finished = 1, old_away_elo, 0))           as sumElo,
+						 sum(if(g.is_finished = 1, 1, 0))                      as finished,
+						 sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
+						 sum(if(g.winner_id = g.home_player_id, 1, 0))                       as won,
+						 sum(if(g.winner_id != g.home_player_id AND g.winner_id != 0, 1, 0)) as lost
+				  from game g
+				  where g.tournament_id = ?
+				  group by g.home_player_id
+				  union
+				  select g.tournament_group_id, g.away_player_id                                         playerId,
+						 sum(if(g.is_finished = 1, old_home_elo, 0))           as sumElo,
+						 sum(if(g.is_finished = 1, 1, 0))                      as finished,
+						 sum(if(g.is_finished = 0, 1, 0))                      as unfinished,
+						 sum(if(g.winner_id = g.away_player_id, 1, 0))                       as won,
+						 sum(if(g.winner_id != g.away_player_id AND g.winner_id != 0, 1, 0)) as lost
+				  from game g
+				  where g.tournament_id = ?
+				  group by g.away_player_id) p
+				join player p2 on p2.id = p.playerId
+			left join player_tournament_group ptg on ptg.player_id = p.playerId and ptg.tournament_id = ?
+			left join tournament_group tg on tg.id = coalesce(ptg.group_id, p.tournament_group_id)
+			group by p.playerId
+			order by ptg.group_id asc, performance desc`
 }
 
 func GetTournamentStandingsDaysQuery() string {

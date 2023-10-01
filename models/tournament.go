@@ -34,6 +34,7 @@ type PlayerPerformance struct {
 	GroupName         string `json:"group_name"`
 	GroupAbbreviation string `json:"group_abbreviation"`
 	Won               int    `json:"won"`
+	Draw              int    `json:"draw"`
 	Lost              int    `json:"lost"`
 	Finished          int    `json:"finished"`
 	Unfinished        int    `json:"unfinished"`
