@@ -233,7 +233,9 @@ func GetLiveTournaments() ([]*models.Tournament, error) {
 			return nil, err
 		}
 
-		tournaments = append(tournaments, t)
+		if t.IsFinished == 0 {
+			tournaments = append(tournaments, t)
+		}
 	}
 
 	if err != nil {

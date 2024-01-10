@@ -63,7 +63,7 @@ func GetTournaments(writer http.ResponseWriter, request *http.Request) {
 func GetLiveTournaments(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetLiveTournaments()
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		json.NewEncoder(writer).Encode(new(models.Tournament))
 		return
 	}
