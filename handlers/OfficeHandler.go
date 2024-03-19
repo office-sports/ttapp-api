@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/office-sports/ttapp-api/data"
 	"github.com/office-sports/ttapp-api/models"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 func GetOffices(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetOffices()
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		err := json.NewEncoder(writer).Encode(new(models.Office))
 		checkErrSimple(err)
 		return

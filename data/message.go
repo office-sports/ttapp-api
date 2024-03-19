@@ -121,9 +121,13 @@ func getFinalMessageText(result *models.GameResult, config *models.Config) (pret
 
 func SendStartMessage(result *models.GameResult) {
 	config, err := models.GetConfig("")
+	md, err := GetOfficeById(result.OfficeId)
 	if err != nil {
 		panic(err)
 	}
+
+	// Important - overwrite channel id with the value from the db
+	config.MessageConfig.ChannelId = *md.ChannelId
 
 	// fetch starting message texts
 	pretext, text := getStartMessageText(result, config)
@@ -143,6 +147,14 @@ func SendStartMessage(result *models.GameResult) {
 // SendEndSetMessage either sends final score or update
 func SendEndSetMessage(result *models.GameResult) {
 	config, err := models.GetConfig("")
+	md, err := GetOfficeById(result.OfficeId)
+	if err != nil {
+		panic(err)
+	}
+
+	// Important - overwrite channel id with the value from the db
+	config.MessageConfig.ChannelId = *md.ChannelId
+
 	if err != nil {
 		panic(err)
 	}

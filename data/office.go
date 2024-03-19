@@ -16,7 +16,7 @@ func GetOffices() ([]*models.Office, error) {
 	ofs := make([]*models.Office, 0)
 	for rows.Next() {
 		o := new(models.Office)
-		err := rows.Scan(&o.ID, &o.Name, &o.IsDefault)
+		err := rows.Scan(&o.ID, &o.Name, &o.IsDefault, &o.ChannelId)
 		if err != nil {
 			return nil, err
 		}
@@ -29,4 +29,16 @@ func GetOffices() ([]*models.Office, error) {
 	}
 
 	return ofs, nil
+}
+
+func GetOfficeById(id int) (*models.Office, error) {
+	o := new(models.Office)
+	err := models.DB.QueryRow(queries.GetOfficeQuery(), id).
+		Scan(&o.ID, &o.Name, &o.IsDefault, &o.ChannelId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return o, nil
 }

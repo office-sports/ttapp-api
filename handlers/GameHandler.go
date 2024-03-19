@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/office-sports/ttapp-api/data"
 	"github.com/office-sports/ttapp-api/models"
@@ -71,7 +72,7 @@ func ChangeServer(writer http.ResponseWriter, request *http.Request) {
 func GetGameModes(writer http.ResponseWriter, request *http.Request) {
 	SetHeaders(writer)
 	md, err := data.GetGameModes()
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		json.NewEncoder(writer).Encode(new(models.GameMode))
 		return
 	}
