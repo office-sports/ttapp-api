@@ -820,12 +820,12 @@ func getGroupsPointsPotentialCount(group *models.TournamentGroup, p models.Group
 		if player.PlayerId != pid {
 			if c == true {
 				// we're checking for greater values
-				if player.PointsPotentialMin < p.PointsPotentialMax {
+				if player.PointsPotentialMin <= p.PointsPotentialMax {
 					count++
 				}
 			} else {
 				// we're checking for smaller values
-				if player.PointsPotentialMax < p.PointsPotentialMin {
+				if player.PointsPotentialMax <= p.PointsPotentialMin {
 					count++
 				}
 			}
