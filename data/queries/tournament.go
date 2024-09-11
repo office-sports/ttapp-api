@@ -16,6 +16,7 @@ func GetTournamentGroupScheduleQuery() string {
 				group by g.tournament_id
 			) w on w.tournament_id = g.tournament_id
 				 where t.is_playoffs = 0 and t.is_finished = 0
+				   and g.is_finished = 0
 				 and g.office_id = ?
 				 and week(g.date_of_match) <= week(NOW())
 		order by tg.id, date_of_match`
@@ -37,7 +38,7 @@ func GetTournamentGroupGamesQuery() string {
 				group by g.tournament_id
 			) w on w.tournament_id = g.tournament_id
 				 where t.is_playoffs = 0 and t.is_finished = 0
-				 and t.id = ?
+				 and g.office_id = ?
 		order by tg.id, date_of_match`
 }
 

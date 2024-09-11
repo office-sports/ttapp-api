@@ -294,8 +294,8 @@ func GetTournamentGroupSchedule(tid int, gid int) ([]*models.Game, error) {
 }
 
 // GetTournamentGroupGames returns array of games for requested tournament id
-func GetTournamentGroupGames(tid int) ([]*models.TournamentGroupSchedule, error) {
-	rows, err := models.DB.Query(queries.GetTournamentGroupGamesQuery(), tid)
+func GetTournamentGroupGames(oid int) ([]*models.TournamentGroupSchedule, error) {
+	rows, err := models.DB.Query(queries.GetTournamentGroupGamesQuery(), oid)
 	if err != nil {
 		return nil, err
 	}
