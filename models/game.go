@@ -15,6 +15,14 @@ type Game struct {
 	Mode           *int   `json:"mode"`
 }
 
+type GameSchedule struct {
+	HomePlayerName      string `json:"home_player_name"`
+	AwayPlayerName      string `json:"away_player_name"`
+	HomePlayerSlackName string `json:"home_player_slack_name"`
+	AwayPlayerSlackName string `json:"away_player_slack_name"`
+	GameWeek            int    `json:"game_week"`
+}
+
 type GameResult struct {
 	MatchId           int        `json:"match_id"`
 	MaxSets           int        `json:"max_sets"`

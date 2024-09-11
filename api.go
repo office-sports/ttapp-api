@@ -58,8 +58,8 @@ func main() {
 	router.HandleFunc("/games/finalize", handlers.FinalizeGame).Methods("POST")
 	router.HandleFunc("/games/changeserver", handlers.ChangeServer).Methods("POST")
 	router.HandleFunc("/games/modes", handlers.GetGameModes).Methods("GET")
-	router.HandleFunc("/games/{id}/details", handlers.GetGameTimeline).Methods("GET")
 	router.HandleFunc("/games/{id}/announce", handlers.AnnounceGame).Methods("GET")
+	router.HandleFunc("/games/{id}/details", handlers.GetGameTimeline).Methods("GET")
 	router.HandleFunc("/games/{id}/serve", handlers.GetGameServe).Methods("GET")
 	router.HandleFunc("/games/{id}/elo", handlers.UpdateGameElo).Methods("GET")
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
@@ -70,6 +70,9 @@ func main() {
 
 	// additional routes
 	router.HandleFunc("/leaders", handlers.GetLeaders).Methods("GET")
+
+	// messages
+	router.HandleFunc("/messages/schedule", handlers.AnnounceSchedule).Methods("GET")
 
 	log.Printf("Listening on port %d", config.APIConfig.Port)
 	log.Println(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.APIConfig.Port), router))

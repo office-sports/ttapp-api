@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
 	"github.com/slack-go/slack"
 	"log"
@@ -34,6 +35,69 @@ var digitsOrder = map[int]string{
 	8:  "eight",
 	9:  "ninth",
 	10: "tenth",
+}
+
+// AnnounceSchedule sends message with list of games to be played
+func AnnounceSchedule() error {
+	config, err := models.GetConfig("")
+	if err != nil {
+		panic(err)
+	}
+	md, err := GetOfficeByChannelId(config.MessageConfig.ChannelId)
+	if err != nil {
+		return err
+	}
+
+	rows, err := models.DB.Query(queries.GetTournamentGroupScheduleQuery(), md.ID)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	// Initialize a map to store grouped game schedules
+	groupedSchedules := make(map[string][]models.GameSchedule)
+
+	// Loop through the database rows
+	for rows.Next() {
+		var gn string // Group name
+		gs := new(models.GameSchedule)
+
+		// Scan the row data into variables
+		err := rows.Scan(&gn, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName, &gs.AwayPlayerSlackName, &gs.GameWeek)
+		if err != nil {
+			return err
+		}
+
+		// Append the game schedule to the appropriate group
+		groupedSchedules[gn] = append(groupedSchedules[gn], *gs)
+	}
+
+	// Convert the groupedSchedules map into a slice of TournamentGroupSchedule
+	var tournamentGroups []models.TournamentGroupSchedule
+	for groupName, schedules := range groupedSchedules {
+		tournamentGroups = append(tournamentGroups, models.TournamentGroupSchedule{
+			Name:         groupName,
+			GameSchedule: schedules,
+		})
+	}
+
+	pretext := ":table_tennis_paddle_and_ball: *Pending official matches*"
+	text := ""
+
+	for _, group := range tournamentGroups {
+		text += "*" + group.Name + "*\n"
+		for _, schedule := range group.GameSchedule {
+			text += "Game Week " + strconv.Itoa(schedule.GameWeek) + ": "
+			text += "<" + schedule.HomePlayerSlackName + "> vs <" + schedule.AwayPlayerSlackName + ">"
+			text += "\n"
+		}
+		text += "\n"
+	}
+
+	SendSlackMessage(*config, pretext, text, "")
+
+	return nil
 }
 
 func getStartMessageText(result *models.GameResult, config *models.Config) (pretext string, text string) {

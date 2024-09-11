@@ -42,3 +42,15 @@ func GetOfficeById(id int) (*models.Office, error) {
 
 	return o, nil
 }
+
+func GetOfficeByChannelId(id string) (*models.Office, error) {
+	o := new(models.Office)
+	err := models.DB.QueryRow(queries.GetOfficeByChannelQuery(), id).
+		Scan(&o.ID, &o.Name, &o.IsDefault, &o.ChannelId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return o, nil
+}

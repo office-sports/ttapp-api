@@ -113,6 +113,11 @@ func AnnounceGame(writer http.ResponseWriter, request *http.Request) {
 	data.AnnounceGame(gid)
 }
 
+// AnnounceSchedule sends announce message
+func AnnounceSchedule(writer http.ResponseWriter, request *http.Request) {
+	data.AnnounceSchedule()
+}
+
 // GetGameServe returns serve data for game
 func GetGameServe(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)

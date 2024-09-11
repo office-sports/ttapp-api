@@ -15,6 +15,11 @@ type Tournament struct {
 	Points       int    `json:"points"`
 }
 
+type TournamentGroupSchedule struct {
+	Name         string         `json:"name"`
+	GameSchedule []GameSchedule `json:"game_schedule"`
+}
+
 type TournamentPerformanceGroup struct {
 	Id              int                 `json:"group_id"`
 	Name            string              `json:"group_name"`

@@ -13,3 +13,10 @@ func GetOfficeQuery() string {
 			FROM office o
 			WHERE o.id = ?`
 }
+
+func GetOfficeByChannelQuery() string {
+	return `SELECT
+			o.id, o.name, o.is_default, o.channel_id
+			FROM office o
+			WHERE o.channel_id = ?`
+}
