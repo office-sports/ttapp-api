@@ -2,7 +2,8 @@ package queries
 
 func GetTournamentGroupScheduleQuery() string {
 	return `select tg.name, ph.name, pa.name, ph.slack_name, pa.slack_name,
-			   (week(g.date_of_match) - start_week + 1) as game_week
+			   (week(g.date_of_match) - start_week + 1) as game_week,
+			   g.date_of_match, g.is_finished
 			from game g
 				join tournament t on t.id = g.tournament_id
 				join tournament_group tg on tg.id = g.tournament_group_id
@@ -17,6 +18,26 @@ func GetTournamentGroupScheduleQuery() string {
 				 where t.is_playoffs = 0 and t.is_finished = 0
 				 and g.office_id = ?
 				 and week(g.date_of_match) <= week(NOW())
+		order by tg.id, date_of_match`
+}
+
+func GetTournamentGroupGamesQuery() string {
+	return `select tg.name, ph.name, pa.name, ph.slack_name, pa.slack_name,
+			   (week(g.date_of_match) - start_week + 1) as game_week,
+			   g.date_of_match, g.is_finished
+			from game g
+				join tournament t on t.id = g.tournament_id
+				join tournament_group tg on tg.id = g.tournament_group_id
+				join player ph on ph.id = g.home_player_id
+				join player pa on pa.id = g.away_player_id
+			join (
+				select min(week(g.date_of_match)) as start_week, g.tournament_id
+				from game g
+				join tournament t on g.tournament_id = t.id
+				group by g.tournament_id
+			) w on w.tournament_id = g.tournament_id
+				 where t.is_playoffs = 0 and t.is_finished = 0
+				 and t.id = ?
 		order by tg.id, date_of_match`
 }
 

@@ -87,6 +87,16 @@ func GetTournamentById(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(tournament)
 }
 
+// GetTournamentGroupGames returns tournament games ordered by date
+func GetTournamentGroupGames(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	tid, _ := strconv.Atoi(params["id"])
+	schedule, err := data.GetTournamentGroupGames(tid)
+	checkErrHTTP(err, writer, "Unable to get tournament games")
+
+	json.NewEncoder(writer).Encode(schedule)
+}
+
 // GetTournamentSchedule returns tournament games ordered by date
 func GetTournamentSchedule(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)

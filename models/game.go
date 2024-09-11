@@ -21,6 +21,8 @@ type GameSchedule struct {
 	HomePlayerSlackName string `json:"home_player_slack_name"`
 	AwayPlayerSlackName string `json:"away_player_slack_name"`
 	GameWeek            int    `json:"game_week"`
+	DateOfMatch         string `json:"date_of_match"`
+	IsFinished          bool   `json:"is_finished"`
 }
 
 type GameResult struct {

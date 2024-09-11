@@ -293,6 +293,46 @@ func GetTournamentGroupSchedule(tid int, gid int) ([]*models.Game, error) {
 	return results, nil
 }
 
+// GetTournamentGroupGames returns array of games for requested tournament id
+func GetTournamentGroupGames(tid int) ([]*models.TournamentGroupSchedule, error) {
+	rows, err := models.DB.Query(queries.GetTournamentGroupGamesQuery(), tid)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	// Initialize a map to store grouped game schedules
+	groupedSchedules := make(map[string][]models.GameSchedule)
+
+	// Loop through the database rows
+	for rows.Next() {
+		var gn string // Group name
+		gs := new(models.GameSchedule)
+
+		// Scan the row data into variables
+		err := rows.Scan(&gn, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName,
+			&gs.AwayPlayerSlackName, &gs.GameWeek, &gs.DateOfMatch, &gs.IsFinished)
+		if err != nil {
+			return nil, err
+		}
+
+		// Append the game schedule to the appropriate group
+		groupedSchedules[gn] = append(groupedSchedules[gn], *gs)
+	}
+
+	// Convert the groupedSchedules map into a slice of TournamentGroupSchedule
+	var tournamentGroups []*models.TournamentGroupSchedule
+	for groupName, schedules := range groupedSchedules {
+		tournamentGroups = append(tournamentGroups, &models.TournamentGroupSchedule{
+			Name:         groupName,
+			GameSchedule: schedules,
+		})
+	}
+
+	return tournamentGroups, nil
+}
+
 // GetTournamentSchedule returns array of games for requested tournament id
 func GetTournamentSchedule(tid int, num int) ([]*models.Game, error) {
 	if num == 0 {

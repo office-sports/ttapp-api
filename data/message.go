@@ -64,7 +64,8 @@ func AnnounceSchedule() error {
 		gs := new(models.GameSchedule)
 
 		// Scan the row data into variables
-		err := rows.Scan(&gn, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName, &gs.AwayPlayerSlackName, &gs.GameWeek)
+		err := rows.Scan(&gn, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName,
+			&gs.AwayPlayerSlackName, &gs.GameWeek, &gs.DateOfMatch, &gs.IsFinished)
 		if err != nil {
 			return err
 		}
