@@ -81,9 +81,9 @@ func GetStatsLeastPointsGameQuery() string {
 }
 
 func GetStatsMostPointsInGameQuery() string {
-	return `select g.id, sum(if(g.winner_id = g.home_player_id, s.home_points, s.away_points)) as pointsScored,
-				   if(g.winner_id = g.home_player_id, hp.id, ap.id) as playerId,
-				   if(g.winner_id = g.home_player_id, hp.name, ap.name) as playerName
+	return `select g.id, if (sum(s.home_points) > sum(s.away_points), sum(s.home_points), sum(s.away_points)) as pointsScored,
+				   if(sum(s.home_points) > sum(s.away_points), hp.id, ap.id) as playerId,
+				   if(sum(s.home_points) > sum(s.away_points), hp.name, ap.name) as playerName
 			from game g
 			join scores s on s.game_id = g.id
 			join player hp on hp.id = g.home_player_id
