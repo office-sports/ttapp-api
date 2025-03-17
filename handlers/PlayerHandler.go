@@ -56,6 +56,48 @@ func GetPlayerResultsById(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(player)
 }
 
+// GetPlayerAvailability returns array of players with dates available to play
+func GetPlayerAvailability(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	md, err := data.GetPlayersAvailability()
+	if errors.Is(err, sql.ErrNoRows) {
+		err := json.NewEncoder(writer).Encode(new(models.Player))
+		checkErrSimple(err)
+		return
+	}
+	checkErrHTTP(err, writer, "Unable to get players data")
+
+	json.NewEncoder(writer).Encode(md)
+}
+
+func SetPlayerAvailability(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	var pd models.PlayerDate
+	err := json.NewDecoder(request.Body).Decode(&pd)
+
+	checkErrHTTP(err, writer, "Unable to fetch game")
+
+	_, err = data.SetPlayerAvailability(pd)
+	if err != nil {
+		return
+	}
+}
+
+// DelPlayerAvailability handles removing player date availability
+func DelPlayerAvailability(writer http.ResponseWriter, request *http.Request) {
+	SetHeaders(writer)
+	var p models.PlayerDate
+	err := json.NewDecoder(request.Body).Decode(&p)
+
+	if err != nil {
+		return
+	}
+
+	data.DeletePlayerDate(p)
+
+	json.NewEncoder(writer).Encode(p)
+}
+
 // GetPlayerScheduleById returns array of player scheduled games for given player id
 func GetPlayerScheduleById(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)

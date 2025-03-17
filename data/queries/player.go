@@ -20,6 +20,14 @@ func GetPlayersDataQuery() string {
 			order by p.name`
 }
 
+func GetPlayersAvailabilityQuery() string {
+	return `SELECT 
+				p.player_id, p2.name, p.date
+			from player_availability p
+			join player p2 on p2.id = p.player_id
+			order by p2.name, p.date`
+}
+
 func GetPlayerDataQuery() string {
 	return `SELECT 
 				p.id, p.name, count(g.id) as played, p.profile_pic_url as pic, p.tournament_elo as elo, 

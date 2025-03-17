@@ -16,6 +16,8 @@ type Game struct {
 }
 
 type GameSchedule struct {
+	HomePlayerId        int    `json:"home_player_id"`
+	AwayPlayerId        int    `json:"away_player_id"`
 	HomePlayerName      string `json:"home_player_name"`
 	AwayPlayerName      string `json:"away_player_name"`
 	HomePlayerSlackName string `json:"home_player_slack_name"`

@@ -3,6 +3,7 @@ package data
 import (
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
+	"log"
 )
 
 func GetPlayers() ([]*models.Player, error) {
@@ -30,6 +31,76 @@ func GetPlayers() ([]*models.Player, error) {
 	}
 
 	return players, nil
+}
+
+func GetPlayersAvailability() ([]*models.PlayerAvailability, error) {
+	rows, err := models.DB.Query(queries.GetPlayersAvailabilityQuery())
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	playerMap := make(map[int]*models.PlayerAvailability)
+	for rows.Next() {
+		var playerId int
+		var playerName string
+		var gameDate string
+
+		err := rows.Scan(&playerId, &playerName, &gameDate)
+		if err != nil {
+			return nil, err
+		}
+
+		if player, exists := playerMap[playerId]; exists {
+			player.GameDates = append(player.GameDates, models.GameDate{Date: gameDate})
+		} else {
+			playerMap[playerId] = &models.PlayerAvailability{
+				ID:        playerId,
+				Name:      playerName,
+				GameDates: []models.GameDate{{Date: gameDate}},
+			}
+		}
+	}
+
+	players := make([]*models.PlayerAvailability, 0, len(playerMap))
+	for _, player := range playerMap {
+		players = append(players, player)
+	}
+
+	return players, nil
+}
+
+// SetPlayerAvailability handles adding player date availability
+func SetPlayerAvailability(pd models.PlayerDate) (int64, error) {
+	hasDate := 0
+	var lid int64 = 0
+	err := models.DB.QueryRow(`select count(player_id) from player_availability pa where pa.player_id = ? and pa.date = ?`,
+		pd.PlayerId, pd.Date).Scan(&hasDate)
+
+	if err != nil {
+		return 0, err
+	}
+
+	// allow inserting of new set score only if it does not exist
+	if hasDate == 0 && pd.PlayerId != 0 {
+		s := `INSERT INTO player_availability (player_id, date) VALUES (?, ?)`
+		lid, err := RunTransaction(s, pd.PlayerId, pd.Date)
+		return lid, err
+	}
+
+	return lid, err
+}
+
+func DeletePlayerDate(pd models.PlayerDate) {
+	s := `DELETE FROM player_availability WHERE player_id = ? and date = ?`
+	args := make([]interface{}, 0)
+	args = append(args, pd.PlayerId, pd.Date)
+	_, err := RunTransaction(s, args...)
+
+	if err != nil {
+		log.Println("Error deleting player date id: ", pd.PlayerId, err)
+	}
 }
 
 func GetLeaders() ([]*models.Leader, error) {

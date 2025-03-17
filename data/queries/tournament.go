@@ -23,7 +23,7 @@ func GetTournamentGroupScheduleQuery() string {
 }
 
 func GetTournamentGroupGamesQuery() string {
-	return `select tg.name, ph.name, pa.name, ph.slack_name, pa.slack_name,
+	return `select tg.name, ph.id, pa.id, ph.name, pa.name, ph.slack_name, pa.slack_name,
 			   (week(g.date_of_match) - start_week + 1) as game_week,
 			   g.date_of_match, g.is_finished
 			from game g

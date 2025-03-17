@@ -31,6 +31,9 @@ func main() {
 
 	// player routes
 	router.HandleFunc("/players", handlers.GetPlayers).Methods("GET")
+	router.HandleFunc("/players/availability", handlers.GetPlayerAvailability).Methods("GET")
+	router.HandleFunc("/players/availability", handlers.SetPlayerAvailability).Methods("POST")
+	router.HandleFunc("/players/availability", handlers.DelPlayerAvailability).Methods("DELETE")
 	router.HandleFunc("/players/{id}", handlers.GetPlayerById).Methods("GET")
 	router.HandleFunc("/players/{id}/results", handlers.GetPlayerResultsById).Methods("GET")
 	router.HandleFunc("/players/{id}/schedule", handlers.GetPlayerScheduleById).Methods("GET")
@@ -52,6 +55,8 @@ func main() {
 	router.HandleFunc("/tournaments/{id}/ladders", handlers.GetTournamentLadders).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/live_games", handlers.GetTournamentGamesLive).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/info", handlers.GetTournamentInfo).Methods("GET")
+
+	// player availability
 
 	// game routes
 	router.HandleFunc("/games/live", handlers.GetGamesLive).Methods("GET")

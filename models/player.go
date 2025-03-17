@@ -40,6 +40,21 @@ type Player struct {
 	Active            int      `json:"active"`
 }
 
+type PlayerAvailability struct {
+	ID        int        `json:"id"`
+	Name      string     `json:"name"`
+	GameDates []GameDate `json:"dates"`
+}
+
+type GameDate struct {
+	Date string `json:"date"`
+}
+
+type PlayerDate struct {
+	PlayerId int    `json:"player_id"`
+	Date     string `json:"date"`
+}
+
 type PlayerCache struct {
 	Elo         int `json:"elo"`
 	OldElo      int `json:"old_elo"`

@@ -311,7 +311,7 @@ func GetTournamentGroupGames(oid int) ([]*models.TournamentGroupSchedule, error)
 		gs := new(models.GameSchedule)
 
 		// Scan the row data into variables
-		err := rows.Scan(&gn, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName,
+		err := rows.Scan(&gn, &gs.HomePlayerId, &gs.AwayPlayerId, &gs.HomePlayerName, &gs.AwayPlayerName, &gs.HomePlayerSlackName,
 			&gs.AwayPlayerSlackName, &gs.GameWeek, &gs.DateOfMatch, &gs.IsFinished)
 		if err != nil {
 			return nil, err
