@@ -304,6 +304,7 @@ func GetTournamentGroupGames(oid int) ([]*models.TournamentGroupSchedule, error)
 
 	// Initialize a map to store grouped game schedules
 	groupedSchedules := make(map[string][]models.GameSchedule)
+	groupOrder := []string{}
 
 	// Loop through the database rows
 	for rows.Next() {
@@ -318,15 +319,20 @@ func GetTournamentGroupGames(oid int) ([]*models.TournamentGroupSchedule, error)
 		}
 
 		// Append the game schedule to the appropriate group
+		if _, exists := groupedSchedules[gn]; !exists {
+			groupOrder = append(groupOrder, gn)
+		}
+
+		// Append the game schedule to the appropriate group
 		groupedSchedules[gn] = append(groupedSchedules[gn], *gs)
 	}
 
 	// Convert the groupedSchedules map into a slice of TournamentGroupSchedule
 	var tournamentGroups []*models.TournamentGroupSchedule
-	for groupName, schedules := range groupedSchedules {
+	for _, groupName := range groupOrder {
 		tournamentGroups = append(tournamentGroups, &models.TournamentGroupSchedule{
 			Name:         groupName,
-			GameSchedule: schedules,
+			GameSchedule: groupedSchedules[groupName],
 		})
 	}
 
