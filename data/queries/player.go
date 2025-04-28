@@ -4,7 +4,7 @@ func GetPlayersDataQuery() string {
 	return `SELECT 
 				p.id, p.name, p.nickname, p.tournament_elo as elo, p.tournament_elo_previous as oldElo, 
 				(p.tournament_elo - p.tournament_elo_previous) as eloChange, 
-				if (count(g.id) is null, 0, count(g.id)) as gamesPlayed,
+				if (count(distinct g.id) is null, 0, count(distinct g.id)) as gamesPlayed,
 				sum(if(g.winner_id = p.id, 1, 0)) as wins,
 				sum(if(g.winner_id = 0, 1, 0)) as draws, 
 				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
