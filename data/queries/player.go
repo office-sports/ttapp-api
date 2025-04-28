@@ -30,7 +30,7 @@ func GetPlayersAvailabilityQuery() string {
 
 func GetPlayerDataQuery() string {
 	return `SELECT 
-				p.id, p.name, count(g.id) as played, p.profile_pic_url as pic, p.tournament_elo as elo, 
+				p.id, p.name, count(distinct g.id) as played, p.profile_pic_url as pic, p.tournament_elo as elo, 
 				sum(if(p.id = g.winner_id, 1, 0)) as wins, 
 				sum(if(g.winner_id = 0, 1, 0)) as draws, 
 				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
