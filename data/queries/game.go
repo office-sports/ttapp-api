@@ -20,12 +20,12 @@ func CheckAndFinishTournament() string {
 }
 
 func UpdateNextPlayoffGameHomePlayer() string {
-	return `update game g set home_player_id = ? 
+	return `update game g set home_player_id = ?, server_id = ? 
               where playoff_home_player_id = ? and tournament_id = ?`
 }
 
 func UpdateNextPlayoffGameAwayPlayer() string {
-	return `update game g set away_player_id = ? 
+	return `update game g set away_player_id = ?, server_id = ? 
               where playoff_away_player_id = ? and tournament_id = ?`
 }
 

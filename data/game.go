@@ -122,22 +122,22 @@ func UpdateNextPlayoffsGame(winnerId int, loserId int, playOrder int, tournament
 	updateStringWinner := "W." + strconv.Itoa(playOrder)
 	updateStringLoser := "L." + strconv.Itoa(playOrder)
 
-	_, err := RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), winnerId, updateStringWinner, tournamentId)
+	_, err := RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), winnerId, winnerId, updateStringWinner, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), loserId, updateStringLoser, tournamentId)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameHomePlayer(), loserId, loserId, updateStringLoser, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), winnerId, updateStringWinner, tournamentId)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), winnerId, winnerId, updateStringWinner, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
 
-	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), loserId, updateStringLoser, tournamentId)
+	_, err = RunTransaction(queries.UpdateNextPlayoffGameAwayPlayer(), loserId, loserId, updateStringLoser, tournamentId)
 	if err != nil {
 		log.Println("Error setting next playoffs game data for player, game id: ", err)
 	}
