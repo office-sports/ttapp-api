@@ -9,7 +9,11 @@ func GetPlayersDataQuery() string {
                 count(distinct if(g.winner_id = 0, g.id, null)) as draws,
 				count(distinct if(g.winner_id != 0 and g.winner_id != p.id, g.id, null)) as losses,				
 				p.office_id as officeId,
-				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage,
+				IF(
+				  count(distinct g.id) > 0,
+				  (count(distinct if(g.winner_id = p.id, g.id, null)) / count(distinct g.id)) * 100,
+				  0
+				) as winPercentage,
 				coalesce(sum(if(g.home_player_id = p.id, s.home_points, s.away_points)) / count(s.id), 0) as pps,
 				p.active
 			from player p
@@ -31,10 +35,14 @@ func GetPlayersAvailabilityQuery() string {
 func GetPlayerDataQuery() string {
 	return `SELECT 
 				p.id, p.name, count(distinct g.id) as played, p.profile_pic_url as pic, p.tournament_elo as elo, 
-				sum(if(p.id = g.winner_id, 1, 0)) as wins, 
-				sum(if(g.winner_id = 0, 1, 0)) as draws, 
-				sum(if(g.winner_id != 0 and g.winner_id != p.id, 1, 0)) as losses,
-				IF (count(g.id) > 0, (sum(if(g.winner_id = p.id, 1, 0)) / count(g.id)) * 100 , 0) as winPercentage,
+				count(distinct if(g.winner_id = p.id, g.id, null)) as wins,
+                count(distinct if(g.winner_id = 0, g.id, null)) as draws,
+				count(distinct if(g.winner_id != 0 and g.winner_id != p.id, g.id, null)) as losses,	
+				IF(
+				  count(distinct g.id) > 0,
+				  (count(distinct if(g.winner_id = p.id, g.id, null)) / count(distinct g.id)) * 100,
+				  0
+				) as winPercentage,
 				coalesce(sum(if(g.home_player_id = p.id, s.home_points, s.away_points)) / count(s.id), 0) as pps
 			from player p 
 			left join game g on p.id in (g.home_player_id, g.away_player_id) and g.is_finished = 1 
