@@ -156,7 +156,7 @@ func GetTournamentsStatisticsQuery() string {
 func GetTournamentsQuery() string {
 	return `select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, coalesce(participants, 0), count(g.id),
+			t.is_finished, t.parent_tournament, coalesce(participants, 0), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
 			left join (
@@ -184,7 +184,7 @@ func GetTournamentsQuery() string {
 func GetLiveTournamentsQuery() string {
 	return `select t.id, t.name, t.is_finished, t.is_playoffs, t.start_time, 
 	   IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-       t.office_id,
+       t.office_id, t.parent_tournament,
 			count(distinct (g.home_player_id)), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)), coalesce(s.sets, 0), coalesce(s.points, 0)
 			from tournament t
@@ -204,7 +204,7 @@ func GetTournamentByIdQuery() string {
 	return `
 			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, count(distinct (g.home_player_id)), count(g.id),
+			t.is_finished, t.parent_tournament, count(distinct (g.home_player_id)), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
 			from tournament t
 			left join game g on g.tournament_id = t.id

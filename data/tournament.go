@@ -200,7 +200,7 @@ func GetTournaments() ([]*models.Tournament, error) {
 	for rows.Next() {
 		t := new(models.Tournament)
 		err := rows.Scan(&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
-			&t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
+			&t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +228,7 @@ func GetLiveTournaments() ([]*models.Tournament, error) {
 	for rows.Next() {
 		t := new(models.Tournament)
 		err := rows.Scan(&t.Id, &t.Name, &t.IsFinished, &t.IsPlayoffs,
-			&t.StartTime, &t.Phase, &t.OfficeId, &t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
+			&t.StartTime, &t.Phase, &t.OfficeId, &t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished, &t.Sets, &t.Points)
 		if err != nil {
 			return nil, err
 		}
@@ -250,7 +250,7 @@ func GetTournamentById(id int) (*models.Tournament, error) {
 	t := new(models.Tournament)
 	err := models.DB.QueryRow(queries.GetTournamentByIdQuery(), id).Scan(
 		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
-		&t.Participants, &t.Scheduled, &t.Finished)
+		&t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished)
 
 	if err != nil {
 		return nil, err

@@ -1,18 +1,19 @@
 package models
 
 type Tournament struct {
-	Id           int    `json:"id"`
-	Name         string `json:"name"`
-	StartTime    string `json:"start_time"`
-	IsPlayoffs   int    `json:"is_playoffs"`
-	OfficeId     int    `json:"office_id"`
-	Phase        string `json:"phase"`
-	IsFinished   int    `json:"is_finished"`
-	Participants int    `json:"participants"`
-	Scheduled    int    `json:"scheduled"`
-	Finished     int    `json:"finished"`
-	Sets         int    `json:"sets"`
-	Points       int    `json:"points"`
+	Id                 int    `json:"id"`
+	Name               string `json:"name"`
+	StartTime          string `json:"start_time"`
+	IsPlayoffs         int    `json:"is_playoffs"`
+	OfficeId           int    `json:"office_id"`
+	Phase              string `json:"phase"`
+	IsFinished         int    `json:"is_finished"`
+	ParentTournamentId *int   `json:"parent_tournament_id"`
+	Participants       int    `json:"participants"`
+	Scheduled          int    `json:"scheduled"`
+	Finished           int    `json:"finished"`
+	Sets               int    `json:"sets"`
+	Points             int    `json:"points"`
 }
 
 type TournamentGroupSchedule struct {
