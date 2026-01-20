@@ -294,3 +294,17 @@ type ServeData struct {
 	CurrentServerId        int `json:"current_server_id"`
 	NumServes              int `json:"num_serves"`
 }
+
+type GameProbabilities struct {
+	Id                         int                `json:"id"`
+	IsFinished                 bool               `json:"is_finished"`
+	IsAbandoned                bool               `json:"is_abandoned"`
+	IsStarted                  bool               `json:"is_started"`
+	IsWalkover                 bool               `json:"is_walkover"`
+	IsPlayersDecided           bool               `json:"is_players_decided"`
+	WinnerId                   int                `json:"winner_id"`
+	Players                    []int              `json:"players"`
+	PlayerElo                  map[string]int     `json:"player_elo"`
+	PlayerWinningProbabilities map[string]float64 `json:"player_winning_probabilities"`
+	PlayerOdds                 map[string]float64 `json:"player_odds"`
+}

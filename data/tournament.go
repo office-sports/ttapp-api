@@ -3,7 +3,9 @@ package data
 import (
 	"github.com/office-sports/ttapp-api/data/queries"
 	"github.com/office-sports/ttapp-api/models"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -989,4 +991,63 @@ func SetPlayoffGameScores(g *models.LadderGroup, setNumber int, hs *int, as *int
 		s.Away = *as
 		g.SetScores = append(g.SetScores, *s)
 	}
+}
+
+func GetTournamentProbabilities(tournamentId int) ([]*models.GameProbabilities, error) {
+	rows, err := models.DB.Query(queries.GetTournamentProbabilitiesQuery(), tournamentId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	games := make([]*models.GameProbabilities, 0)
+	for rows.Next() {
+		g := new(models.GameProbabilities)
+		var homePlayerId, awayPlayerId int
+		var homeElo, awayElo int
+		var isFinished, isAbandoned, isStarted, isWalkover int
+
+		err := rows.Scan(&g.Id, &isFinished, &isAbandoned, &isStarted,
+			&isWalkover, &homePlayerId, &awayPlayerId, &g.WinnerId, &homeElo, &awayElo)
+		if err != nil {
+			return nil, err
+		}
+		g.IsFinished = isFinished == 1
+		g.IsAbandoned = isAbandoned == 1
+		g.IsStarted = isStarted == 1
+		g.IsWalkover = isWalkover == 1
+		g.IsPlayersDecided = homePlayerId > 0 && awayPlayerId > 0
+		g.Players = []int{homePlayerId, awayPlayerId}
+
+		g.PlayerElo = make(map[string]int)
+		g.PlayerElo[strconv.Itoa(homePlayerId)] = homeElo
+		g.PlayerElo[strconv.Itoa(awayPlayerId)] = awayElo
+
+		homeProb, awayProb := calculateWinProbability(homeElo, awayElo)
+
+		g.PlayerWinningProbabilities = make(map[string]float64)
+		g.PlayerWinningProbabilities[strconv.Itoa(homePlayerId)] = homeProb
+		g.PlayerWinningProbabilities[strconv.Itoa(awayPlayerId)] = awayProb
+
+		g.PlayerOdds = make(map[string]float64)
+		g.PlayerOdds[strconv.Itoa(homePlayerId)] = calculateOdds(homeProb)
+		g.PlayerOdds[strconv.Itoa(awayPlayerId)] = calculateOdds(awayProb)
+
+		games = append(games, g)
+	}
+
+	return games, nil
+}
+
+func calculateWinProbability(eloA, eloB int) (float64, float64) {
+	expectedA := 1.0 / (1.0 + math.Pow(10, float64(eloB-eloA)/800.0))
+	expectedB := 1.0 - expectedA
+	return math.Round(expectedA*1000) / 1000, math.Round(expectedB*1000) / 1000
+}
+
+func calculateOdds(probability float64) float64 {
+	if probability == 0 {
+		return 0
+	}
+	return math.Round((1.0/probability)*1000) / 1000
 }

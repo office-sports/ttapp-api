@@ -94,6 +94,23 @@ func GetStatsMostPointsInGameQuery() string {
 			limit 1;`
 }
 
+func GetTournamentProbabilitiesQuery() string {
+	return `select 
+		g.id,
+		g.is_finished,
+		g.is_abandoned,
+		CASE WHEN EXISTS (SELECT 1 FROM scores s WHERE s.game_id = g.id) THEN 1 ELSE 0 END as is_started,
+		g.is_walkover,
+		g.home_player_id,
+		g.away_player_id,
+		g.winner_id,
+		coalesce(g.old_home_elo, 1500) as home_elo,
+		coalesce(g.old_away_elo, 1500) as away_elo
+	from game g
+	where g.tournament_id = ?
+	order by g.id`
+}
+
 func GetStatsEloGainQuery() string {
 	return `select
 				g.id, GREATEST((g.new_home_elo - g.old_home_elo), (g.new_away_elo - g.old_away_elo)) as eloGain,

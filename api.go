@@ -55,6 +55,7 @@ func main() {
 	router.HandleFunc("/tournaments/{id}/ladders", handlers.GetTournamentLadders).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/live_games", handlers.GetTournamentGamesLive).Methods("GET")
 	router.HandleFunc("/tournaments/{id}/info", handlers.GetTournamentInfo).Methods("GET")
+	router.HandleFunc("/tournaments/{id}/probabilities", handlers.GetTournamentProbabilities).Methods("GET")
 
 	// player availability
 

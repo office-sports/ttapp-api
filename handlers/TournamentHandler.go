@@ -199,3 +199,18 @@ func GetTournamentLadders(writer http.ResponseWriter, request *http.Request) {
 
 	json.NewEncoder(writer).Encode(ladders)
 }
+
+// GetTournamentProbabilities returns game probabilities for requested tournament
+func GetTournamentProbabilities(writer http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	id, _ := strconv.Atoi(params["id"])
+	if id == 0 {
+		log.Println("Invalid tournament id")
+		http.Error(writer, "Invalid tournament id", http.StatusBadRequest)
+		return
+	}
+	probabilities, err := data.GetTournamentProbabilities(id)
+	checkErrHTTP(err, writer, "Unable to get tournament probabilities")
+
+	json.NewEncoder(writer).Encode(probabilities)
+}
