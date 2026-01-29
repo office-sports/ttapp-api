@@ -1,19 +1,23 @@
 package models
 
 type Tournament struct {
-	Id                 int    `json:"id"`
-	Name               string `json:"name"`
-	StartTime          string `json:"start_time"`
-	IsPlayoffs         int    `json:"is_playoffs"`
-	OfficeId           int    `json:"office_id"`
-	Phase              string `json:"phase"`
-	IsFinished         int    `json:"is_finished"`
-	ParentTournamentId *int   `json:"parent_tournament_id"`
-	Participants       int    `json:"participants"`
-	Scheduled          int    `json:"scheduled"`
-	Finished           int    `json:"finished"`
-	Sets               int    `json:"sets"`
-	Points             int    `json:"points"`
+	Id                      int     `json:"id"`
+	Name                    string  `json:"name"`
+	StartTime               string  `json:"start_time"`
+	IsPlayoffs              int     `json:"is_playoffs"`
+	OfficeId                int     `json:"office_id"`
+	Phase                   string  `json:"phase"`
+	IsFinished              int     `json:"is_finished"`
+	ParentTournamentId      *int    `json:"parent_tournament_id"`
+	Participants            int     `json:"participants"`
+	Scheduled               int     `json:"scheduled"`
+	Finished                int     `json:"finished"`
+	Sets                    int     `json:"sets"`
+	Points                  int     `json:"points"`
+	EnableTimelinessBonus   int     `json:"enable_timeliness_bonus"`
+	TimelinessBonusEarly    float64 `json:"timeliness_bonus_early"`
+	TimelinessBonusOntime   float64 `json:"timeliness_bonus_ontime"`
+	TimelinessWindowHours   int     `json:"timeliness_window_hours"`
 }
 
 type TournamentGroupSchedule struct {
@@ -67,7 +71,7 @@ type GroupStandingsPlayer struct {
 	Wins               int     `json:"wins"`
 	Draws              int     `json:"draws"`
 	Losses             int     `json:"losses"`
-	Points             int     `json:"points"`
+	Points             float64 `json:"points"`
 	SetsFor            int     `json:"sets_for"`
 	SetsAgainst        int     `json:"sets_against"`
 	SetsDiff           int     `json:"sets_diff"`

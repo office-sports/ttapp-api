@@ -269,6 +269,10 @@ CREATE TABLE `tournament` (
   `is_official` tinyint(1) NOT NULL,
   `parent_tournament` int DEFAULT NULL,
   `office_id` int DEFAULT NULL,
+  `enable_timeliness_bonus` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Enable/disable timeliness bonus for this tournament',
+  `timeliness_bonus_early` decimal(3,2) NOT NULL DEFAULT 0.50 COMMENT 'Bonus points for games played >48h early',
+  `timeliness_bonus_ontime` decimal(3,2) NOT NULL DEFAULT 0.75 COMMENT 'Bonus points for games played within ±48h window',
+  `timeliness_window_hours` int NOT NULL DEFAULT 48 COMMENT 'Hours window for on-time bonus (±48h = ±2 days)',
   PRIMARY KEY (`id`),
   KEY `IDX_BD5FB8D9FFA0C224` (`office_id`),
   CONSTRAINT `FK_BD5FB8D9FFA0C224` FOREIGN KEY (`office_id`) REFERENCES `office` (`id`)

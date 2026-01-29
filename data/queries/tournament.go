@@ -222,7 +222,8 @@ func GetTournamentByIdQuery() string {
 			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
 			t.is_finished, t.parent_tournament, count(distinct (g.home_player_id)), count(g.id),
-			if(sum(g.is_finished) is null, 0, sum(g.is_finished))
+			if(sum(g.is_finished) is null, 0, sum(g.is_finished)),
+			t.enable_timeliness_bonus, t.timeliness_bonus_early, t.timeliness_bonus_ontime, t.timeliness_window_hours
 			from tournament t
 			left join game g on g.tournament_id = t.id
 			where t.is_official = 1 and t.id = ?
@@ -285,7 +286,31 @@ func GetTournamentStandingsBaseQuery() string {
 				SUM(if (g1.winner_id = ptg.player_id, 1, 0)) as wins,
 				SUM(if (g1.is_finished = 1 AND g1.winner_id = 0, 1, 0)) as draws,
 				SUM(if (g1.is_finished = 1 AND g1.winner_id != 0 AND g1.winner_id != ptg.player_id, 1, 0)) as losses,
-				(SUM(if (g1.winner_id = ptg.player_id, 1, 0)) * 2 + SUM(if (g1.is_finished = 1 AND g1.winner_id = 0, 1, 0))) as points,
+				(
+					SUM(if (g1.winner_id = ptg.player_id, 1, 0)) * 2 + 
+					SUM(if (g1.is_finished = 1 AND g1.winner_id = 0, 1, 0)) +
+					-- Timeliness bonus (only if enabled and not playoffs)
+					CASE 
+						WHEN t.enable_timeliness_bonus = 1 AND t.is_playoffs = 0 THEN
+							SUM(
+								CASE
+									-- On-time: within window hours
+									WHEN g1.is_finished = 1 AND 
+										 ABS(TIMESTAMPDIFF(HOUR, g1.date_played, g1.date_of_match)) <= t.timeliness_window_hours 
+									THEN t.timeliness_bonus_ontime
+									
+									-- Early: played before window starts  
+									WHEN g1.is_finished = 1 AND 
+										 TIMESTAMPDIFF(HOUR, g1.date_played, g1.date_of_match) > t.timeliness_window_hours
+									THEN t.timeliness_bonus_early
+									
+									-- Late or not finished: no bonus
+									ELSE 0
+								END
+							)
+						ELSE 0
+					END
+				) as points,
 				(SUM(if (g1.home_player_id = ptg.player_id, g1.home_score, 0)) + SUM(if (g1.away_player_id = ptg.player_id, g1.away_score, 0))) as setsFor,
 				(SUM(if (g1.home_player_id = ptg.player_id, g1.away_score, 0)) + SUM(if (g1.away_player_id = ptg.player_id, g1.home_score, 0))) as setsAgainst,
 				((SUM(if (g1.home_player_id = ptg.player_id, g1.home_score, 0)) + SUM(if (g1.away_player_id = ptg.player_id, g1.away_score, 0))) -
@@ -297,6 +322,7 @@ func GetTournamentStandingsBaseQuery() string {
 			left join game g1 on (g1.home_player_id = ptg.player_id or g1.away_player_id = ptg.player_id) and g1.tournament_id = ?
 			left join player p on p.id = ptg.player_id
 			left join tournament_group tg on tg.id = ptg.group_id
+			left join tournament t on t.id = ptg.tournament_id
 			left join (
 			select player, sum(pointsFor) as ralliesFor, sum(pointsAgainst) as ralliesAgainst, (sum(pointsFor) - sum(pointsAgainst)) as df from (
 			SELECT g.id, g.home_player_id   AS player, sum(s.home_points) AS pointsFor, sum(s.away_points) AS pointsAgainst

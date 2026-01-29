@@ -252,7 +252,8 @@ func GetTournamentById(id int) (*models.Tournament, error) {
 	t := new(models.Tournament)
 	err := models.DB.QueryRow(queries.GetTournamentByIdQuery(), id).Scan(
 		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
-		&t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished)
+		&t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished,
+		&t.EnableTimelinessBonus, &t.TimelinessBonusEarly, &t.TimelinessBonusOntime, &t.TimelinessWindowHours)
 
 	if err != nil {
 		return nil, err
@@ -528,15 +529,15 @@ func GetTournamentStandingsById(id int) (map[int]*models.TournamentGroup, error)
 		for j, player := range group.Players {
 			player.GamesRemaining = len(group.Players) - player.Played - 1
 
-			player.PointsPotentialMin = float64(player.Points) +
+			player.PointsPotentialMin = player.Points +
 				float64(player.SetsDiff)/100
 			if player.GamesRemaining == 0 {
 				player.PointsPotentialMax =
-					float64(player.Points+player.GamesRemaining*2) +
+					player.Points + float64(player.GamesRemaining*2) +
 						float64(player.SetsDiff)/100
 			} else {
 				player.PointsPotentialMax =
-					float64(player.Points+player.GamesRemaining*2) +
+					player.Points + float64(player.GamesRemaining*2) +
 						float64(player.GamesRemaining)*((setsPerGame+float64(player.SetsDiff))/100)
 			}
 
@@ -709,15 +710,15 @@ func GetPreviousTournamentStandingsById(id int) (map[int]*models.TournamentGroup
 		for j, player := range group.Players {
 			player.GamesRemaining = len(group.Players) - player.Played - 1
 
-			player.PointsPotentialMin = float64(player.Points) +
+			player.PointsPotentialMin = player.Points +
 				float64(player.SetsDiff)/100
 			if player.GamesRemaining == 0 {
 				player.PointsPotentialMax =
-					float64(player.Points+player.GamesRemaining*2) +
+					player.Points + float64(player.GamesRemaining*2) +
 						float64(player.SetsDiff)/100
 			} else {
 				player.PointsPotentialMax =
-					float64(player.Points+player.GamesRemaining*2) +
+					player.Points + float64(player.GamesRemaining*2) +
 						float64(player.GamesRemaining)*(setsPerGame/100)
 			}
 
