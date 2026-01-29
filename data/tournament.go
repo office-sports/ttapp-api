@@ -253,7 +253,7 @@ func GetTournamentById(id int) (*models.Tournament, error) {
 	err := models.DB.QueryRow(queries.GetTournamentByIdQuery(), id).Scan(
 		&t.Id, &t.Name, &t.StartTime, &t.IsPlayoffs, &t.OfficeId, &t.Phase, &t.IsFinished,
 		&t.ParentTournamentId, &t.Participants, &t.Scheduled, &t.Finished,
-		&t.EnableTimelinessBonus, &t.TimelinessBonusEarly, &t.TimelinessBonusOntime, &t.TimelinessWindowHours)
+		&t.EnableTimelinessBonus, &t.TimelinessBonusEarly, &t.TimelinessBonusOntime, &t.TimelinessWindowDays)
 
 	if err != nil {
 		return nil, err

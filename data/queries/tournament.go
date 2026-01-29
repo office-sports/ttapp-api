@@ -221,10 +221,20 @@ func GetTournamentByIdQuery() string {
 	return `
 			select t.id, t.name, t.start_time, t.is_playoffs, t.office_id,
 			IF (t.is_playoffs = 0, 'group', 'playoffs') as phase,
-			t.is_finished, t.parent_tournament, count(distinct (g.home_player_id)), count(g.id),
+			t.is_finished, t.parent_tournament, coalesce(participants, 0), count(g.id),
 			if(sum(g.is_finished) is null, 0, sum(g.is_finished)),
-			t.enable_timeliness_bonus, t.timeliness_bonus_early, t.timeliness_bonus_ontime, t.timeliness_window_hours
+			t.enable_timeliness_bonus, t.timeliness_bonus_early, t.timeliness_bonus_ontime, t.timeliness_window_days
 			from tournament t
+			left join (
+                select gg.tid, count(distinct(gg.pid)) participants from (select g.home_player_id pid, g.tournament_id tid
+                                           from game g
+                                           where g.home_player_id != 0
+                                           UNION ALL
+                                           select g.away_player_id pid, g.tournament_id tid
+                                           from game g
+                                           where g.away_player_id != 0) gg
+                group by gg.tid
+            ) t2 on t2.tid = t.id
 			left join game g on g.tournament_id = t.id
 			where t.is_official = 1 and t.id = ?
 			group by t.id, t.start_time
@@ -294,14 +304,14 @@ func GetTournamentStandingsBaseQuery() string {
 						WHEN t.enable_timeliness_bonus = 1 AND t.is_playoffs = 0 THEN
 							SUM(
 								CASE
-									-- On-time: within window hours
+									-- On-time: within window days (date-based, ignoring time)
 									WHEN g1.is_finished = 1 AND 
-										 ABS(TIMESTAMPDIFF(HOUR, g1.date_played, g1.date_of_match)) <= t.timeliness_window_hours 
+										 ABS(TIMESTAMPDIFF(DAY, DATE(g1.date_played), DATE(g1.date_of_match))) <= t.timeliness_window_days 
 									THEN t.timeliness_bonus_ontime
 									
-									-- Early: played before window starts  
+									-- Early: played before window starts (date-based)
 									WHEN g1.is_finished = 1 AND 
-										 TIMESTAMPDIFF(HOUR, g1.date_played, g1.date_of_match) > t.timeliness_window_hours
+										 TIMESTAMPDIFF(DAY, DATE(g1.date_played), DATE(g1.date_of_match)) > t.timeliness_window_days
 									THEN t.timeliness_bonus_early
 									
 									-- Late or not finished: no bonus

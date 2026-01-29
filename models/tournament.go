@@ -17,7 +17,7 @@ type Tournament struct {
 	EnableTimelinessBonus   int     `json:"enable_timeliness_bonus"`
 	TimelinessBonusEarly    float64 `json:"timeliness_bonus_early"`
 	TimelinessBonusOntime   float64 `json:"timeliness_bonus_ontime"`
-	TimelinessWindowHours   int     `json:"timeliness_window_hours"`
+	TimelinessWindowDays    int     `json:"timeliness_window_days"`
 }
 
 type TournamentGroupSchedule struct {
