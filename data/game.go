@@ -611,14 +611,17 @@ func RecalculateElo() ([]*models.EloHistory, error) {
 		updateGameElos(h.GameId, h.HomeEloOld, h.AwayEloOld, h.HomeEloNew, h.AwayEloNew)
 		updatePlayerElo(h.HomePlayerId, h.HomeEloNew, h.HomeEloOld)
 		updatePlayerElo(h.AwayPlayerId, h.AwayEloNew, h.AwayEloOld)
-		updateFutureGamesElo(h.HomePlayerId, h.HomeEloNew, h.GameId)
-		updateFutureGamesElo(h.AwayPlayerId, h.AwayEloNew, h.GameId)
 
 		gm = append(gm, h)
 	}
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Update all unfinished games with final player ELO values
+	for playerId, finalElo := range playersElo {
+		updateAllUnfinishedGamesElo(playerId, finalElo)
 	}
 
 	return gm, nil
@@ -655,8 +658,8 @@ func UpdateGameElo(id int) {
 	updateGameElos(id, ohE, oaE, nh, na)
 	updatePlayerElo(gid.HomePlayerId, nh, ohE)
 	updatePlayerElo(gid.AwayPlayerId, na, oaE)
-	updateFutureGamesElo(gid.HomePlayerId, nh, id)
-	updateFutureGamesElo(gid.AwayPlayerId, na, id)
+	updateFutureGamesElo(gid.HomePlayerId, nh, gid.TournamentId)
+	updateFutureGamesElo(gid.AwayPlayerId, na, gid.TournamentId)
 }
 
 // CalculateElo will calculate the Elo for each player based on the given information. Returned value is new Elo for player1 and player2 respectively
@@ -732,29 +735,54 @@ func updatePlayerElo(pid int, elo int, pelo int) {
 	}
 }
 
-func updateFutureGamesElo(pid int, newElo int, gameId int) {
+func updateFutureGamesElo(pid int, newElo int, tournamentId int) {
 	var s string
 	s = `UPDATE game g 
-		INNER JOIN (SELECT date_played FROM game WHERE id = ?) finished ON 1=1
 		SET g.old_home_elo = ? 
 		WHERE g.home_player_id = ? 
-		AND g.is_finished = 0 
-		AND g.date_of_match > finished.date_played`
-	_, err := models.DB.Exec(s, gameId, newElo, pid)
+		AND g.tournament_id = ?
+		AND g.is_finished = 0`
+	_, err := models.DB.Exec(s, newElo, pid, tournamentId)
 
 	if err != nil {
 		log.Println("Error updating future home games ELO for player: ", pid, err)
 	}
 
 	s = `UPDATE game g 
-		INNER JOIN (SELECT date_played FROM game WHERE id = ?) finished ON 1=1
 		SET g.old_away_elo = ? 
 		WHERE g.away_player_id = ? 
-		AND g.is_finished = 0 
-		AND g.date_of_match > finished.date_played`
-	_, err = models.DB.Exec(s, gameId, newElo, pid)
+		AND g.tournament_id = ?
+		AND g.is_finished = 0`
+	_, err = models.DB.Exec(s, newElo, pid, tournamentId)
 
 	if err != nil {
 		log.Println("Error updating future away games ELO for player: ", pid, err)
+	}
+}
+
+func updateAllUnfinishedGamesElo(pid int, newElo int) {
+	var s string
+	s = `UPDATE game g 
+		JOIN tournament t ON g.tournament_id = t.id
+		SET g.old_home_elo = ? 
+		WHERE g.home_player_id = ? 
+		AND g.is_finished = 0
+		AND t.is_official = 1`
+	_, err := models.DB.Exec(s, newElo, pid)
+
+	if err != nil {
+		log.Println("Error updating all unfinished home games ELO for player: ", pid, err)
+	}
+
+	s = `UPDATE game g 
+		JOIN tournament t ON g.tournament_id = t.id
+		SET g.old_away_elo = ? 
+		WHERE g.away_player_id = ? 
+		AND g.is_finished = 0
+		AND t.is_official = 1`
+	_, err = models.DB.Exec(s, newElo, pid)
+
+	if err != nil {
+		log.Println("Error updating all unfinished away games ELO for player: ", pid, err)
 	}
 }
