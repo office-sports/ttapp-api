@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/office-sports/ttapp-api/handlers"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/office-sports/ttapp-api/handlers"
 
 	"github.com/gorilla/mux"
 	"github.com/office-sports/ttapp-api/models"
@@ -70,6 +71,7 @@ func main() {
 	router.HandleFunc("/games/{id}/serve", handlers.GetGameServe).Methods("GET")
 	router.HandleFunc("/games/{id}/elo", handlers.UpdateGameElo).Methods("GET")
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
+	router.HandleFunc("/games/elo/fd418b58759511953bb0cb324b6ff5d2", handlers.RecalculateElo).Methods("GET")
 
 	// scoring routes
 	router.HandleFunc("/points/add", handlers.AddPoint).Methods("POST")
