@@ -141,3 +141,8 @@ func GetGameById(writer http.ResponseWriter, request *http.Request) {
 
 	json.NewEncoder(writer).Encode(g)
 }
+
+// AnnounceBonusSchedule sends message with overdue games showing bonus eligibility
+func AnnounceBonusSchedule(writer http.ResponseWriter, request *http.Request) {
+data.AnnounceBonusSchedule()
+}

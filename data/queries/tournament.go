@@ -527,3 +527,30 @@ func GetTournamentGamesQuery() string {
 			left join scores sss on sss.game_id = g.id
 			left join points ppp on ppp.score_id = sss.id`
 }
+
+func GetBonusEligibleGamesQuery() string {
+return `select tg.name, ph.name, pa.name, ph.slack_name, pa.slack_name,
+   g.date_of_match,
+   DATEDIFF(CURDATE(), DATE(g.date_of_match)) as days_diff,
+   t.enable_timeliness_bonus,
+   t.timeliness_bonus_early,
+   t.timeliness_bonus_ontime,
+   t.timeliness_window_days
+from game g
+join tournament t on t.id = g.tournament_id
+join tournament_group tg on tg.id = g.tournament_group_id
+join player ph on ph.id = g.home_player_id
+join player pa on pa.id = g.away_player_id
+where t.is_playoffs = 0 
+  and t.is_finished = 0
+  and g.is_finished = 0
+  and g.office_id = ?
+  and (
+      DATE(g.date_of_match) <= CURDATE()
+      OR (
+          DATE(g.date_of_match) <= CURDATE() + INTERVAL 5 DAY
+          AND DAYOFWEEK(g.date_of_match) NOT IN (1, 7)
+      )
+  )
+order by tg.id, g.date_of_match`
+}

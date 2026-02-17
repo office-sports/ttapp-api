@@ -581,3 +581,139 @@ func getRandomMessage(msgs []string) string {
 
 	return msg
 }
+
+// AnnounceBonusSchedule sends message with overdue games showing bonus eligibility
+// AnnounceBonusSchedule sends message with all unplayed games (past + next 5 days)
+func AnnounceBonusSchedule() error {
+config, err := models.GetConfig("")
+if err != nil {
+return err
+}
+md, err := GetOfficeByChannelId(config.MessageConfig.ChannelId)
+if err != nil {
+return err
+}
+
+type BonusGame struct {
+GroupName             string
+HomePlayerName        string
+AwayPlayerName        string
+HomePlayerSlackName   string
+AwayPlayerSlackName   string
+DateOfMatch           string
+DaysDiff              int // positive = late, negative = future
+EnableTimelinessBonus int
+BonusEarly            float64
+BonusOntime           float64
+WindowDays            int
+}
+
+// Fetch all games (past + next 5 weekdays)
+rows, err := models.DB.Query(queries.GetBonusEligibleGamesQuery(), md.ID)
+if err != nil {
+return err
+}
+defer rows.Close()
+
+groupedGames := make(map[string][]BonusGame)
+groupOrder := []string{}
+
+for rows.Next() {
+var game BonusGame
+err := rows.Scan(&game.GroupName, &game.HomePlayerName, &game.AwayPlayerName,
+&game.HomePlayerSlackName, &game.AwayPlayerSlackName, &game.DateOfMatch,
+&game.DaysDiff, &game.EnableTimelinessBonus, &game.BonusEarly,
+&game.BonusOntime, &game.WindowDays)
+if err != nil {
+return err
+}
+
+if _, exists := groupedGames[game.GroupName]; !exists {
+groupOrder = append(groupOrder, game.GroupName)
+}
+groupedGames[game.GroupName] = append(groupedGames[game.GroupName], game)
+}
+
+// Format message - one list per group
+pretext := ":table_tennis_paddle_and_ball: *Games Schedule*"
+text := ""
+
+totalFull := 0
+totalReduced := 0
+
+for _, groupName := range groupOrder {
+games := groupedGames[groupName]
+if len(games) == 0 {
+continue
+}
+
+text += "*" + groupName + "*\n"
+
+for _, game := range games {
+dateStr := game.DateOfMatch[:10]
+daysDiff := game.DaysDiff
+
+// Determine bonus status first
+var hasFullBonus, hasReducedBonus bool
+if game.EnableTimelinessBonus == 1 {
+absDays := daysDiff
+if absDays < 0 {
+absDays = -absDays
+}
+
+if absDays <= game.WindowDays {
+hasFullBonus = true
+totalFull++
+} else if (daysDiff > 0 && daysDiff <= game.WindowDays*2) || (daysDiff < 0 && absDays <= 5) {
+hasReducedBonus = true
+totalReduced++
+}
+}
+
+// Format time text - all with backticks for consistency
+var timeText string
+if daysDiff > 0 {
+// Past/overdue
+timeText = strconv.Itoa(daysDiff) + "d late"
+} else if daysDiff == 0 {
+// Today
+timeText = "today"
+} else {
+// Future
+daysUntil := -daysDiff
+if daysUntil == 1 {
+timeText = "tomorrow"
+} else {
+timeText = "in " + strconv.Itoa(daysUntil) + " days"
+}
+}
+
+// Wrap all in backticks for consistent formatting
+timeText = "`" + timeText + "`"
+
+line := "  " + dateStr + " " + timeText + " "
+line += "<" + game.HomePlayerSlackName + "> vs <" + game.AwayPlayerSlackName + ">"
+
+// Add bonus marker
+if hasFullBonus {
+bonusStr := strconv.FormatFloat(game.BonusOntime, 'f', 2, 64)
+line += " [+" + bonusStr + "]"
+} else if hasReducedBonus {
+bonusStr := strconv.FormatFloat(game.BonusEarly, 'f', 2, 64)
+line += " [+" + bonusStr + "]"
+}
+
+text += line + "\n"
+}
+
+text += "\n"
+}
+
+// Add overall summary
+if totalFull > 0 || totalReduced > 0 {
+text += strconv.Itoa(totalFull) + " full bonus • " + strconv.Itoa(totalReduced) + " reduced bonus\n"
+}
+
+SendSlackMessage(*config, pretext, text, "")
+return nil
+}

@@ -82,6 +82,7 @@ func main() {
 
 	// messages
 	router.HandleFunc("/messages/schedule", handlers.AnnounceSchedule).Methods("GET")
+	router.HandleFunc("/messages/schedule/bonus", handlers.AnnounceBonusSchedule).Methods("GET")
 
 	log.Printf("Listening on port %d", config.APIConfig.Port)
 	log.Println(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.APIConfig.Port), router))
