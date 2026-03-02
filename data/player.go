@@ -263,3 +263,73 @@ func GetPlayerOpponentsById(id int) ([]*models.PlayerOpponent, error) {
 
 	return opponents, nil
 }
+
+func GetPlayerBySlackName(slackName string) (*models.Player, error) {
+	p := new(models.Player)
+	err := models.DB.QueryRow(`
+		SELECT id, name, nickname, slack_name, profile_pic_url 
+		FROM player 
+		WHERE slack_name = ?
+	`, slackName).Scan(&p.ID, &p.Name, &p.Nickname, &p.SlackName, &p.ProfilePicUrl)
+	
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func GetPlayerPasswordHash(playerID int) (string, error) {
+	var hash string
+	err := models.DB.QueryRow(`
+		SELECT password_hash 
+		FROM player_auth 
+		WHERE player_id = ?
+	`, playerID).Scan(&hash)
+	
+	if err != nil {
+		return "", err
+	}
+	return hash, nil
+}
+
+func GetPlayerPasswordHashWithFlag(playerID int) (string, bool, error) {
+	var hash string
+	var mustChange bool
+	err := models.DB.QueryRow(`
+		SELECT password_hash, COALESCE(must_change_password, 0)
+		FROM player_auth 
+		WHERE player_id = ?
+	`, playerID).Scan(&hash, &mustChange)
+	
+	if err != nil {
+		return "", false, err
+	}
+	return hash, mustChange, nil
+}
+
+func SetPlayerPasswordHash(playerID int, hash string) error {
+	_, err := models.DB.Exec(`
+		INSERT INTO player_auth (player_id, password_hash) 
+		VALUES (?, ?) 
+		ON DUPLICATE KEY UPDATE password_hash = ?
+	`, playerID, hash, hash)
+	return err
+}
+
+func UpdatePlayerNickname(playerID int, nickname string) error {
+	_, err := models.DB.Exec(`
+		UPDATE player 
+		SET nickname = ? 
+		WHERE id = ?
+	`, nickname, playerID)
+	return err
+}
+
+func ClearMustChangePasswordFlag(playerID int) error {
+	_, err := models.DB.Exec(`
+		UPDATE player_auth 
+		SET must_change_password = 0 
+		WHERE player_id = ?
+	`, playerID)
+	return err
+}

@@ -20,6 +20,7 @@ type Player struct {
 	ID                int      `json:"id"`
 	Name              string   `json:"name"`
 	Nickname          *string  `json:"nickname"`
+	SlackName         string   `json:"slack_name"`
 	Elo               int      `json:"elo"`
 	OldElo            int      `json:"old_elo"`
 	EloChange         int      `json:"elo_change"`

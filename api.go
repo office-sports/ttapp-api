@@ -30,6 +30,12 @@ func main() {
 	// office routes
 	router.HandleFunc("/offices", handlers.GetOffices).Methods("GET")
 
+	// auth routes
+	router.HandleFunc("/auth/login", handlers.Login).Methods("POST")
+	router.HandleFunc("/auth/verify", handlers.AuthMiddleware(handlers.VerifyToken)).Methods("GET")
+	router.HandleFunc("/auth/password", handlers.AuthMiddleware(handlers.SetPassword)).Methods("POST")
+	router.HandleFunc("/auth/profile", handlers.AuthMiddleware(handlers.UpdateProfile)).Methods("PUT")
+
 	// player routes
 	router.HandleFunc("/players", handlers.GetPlayers).Methods("GET")
 	router.HandleFunc("/players/availability", handlers.GetPlayerAvailability).Methods("GET")
