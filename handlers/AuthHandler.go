@@ -26,6 +26,7 @@ type LoginResponse struct {
 	Nickname             string `json:"nickname"`
 	ProfilePic           string `json:"profile_pic_url"`
 	MustChangePassword   bool   `json:"must_change_password"`
+	IsAdmin              bool   `json:"is_admin"`
 }
 
 type ProfileUpdateRequest struct {
@@ -37,6 +38,7 @@ type AuthClaims struct {
 	PlayerID  int    `json:"player_id"`
 	SlackName string `json:"slack_name"`
 	Name      string `json:"name"`
+	IsAdmin   bool   `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
@@ -85,6 +87,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		PlayerID:  player.ID,
 		SlackName: player.SlackName,
 		Name:      player.Name,
+		IsAdmin:   player.IsAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
@@ -106,6 +109,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Nickname:           getNicknameOrEmpty(player.Nickname),
 		ProfilePic:         player.ProfilePicUrl,
 		MustChangePassword: mustChange,
+		IsAdmin:            player.IsAdmin,
 	}
 
 	w.WriteHeader(http.StatusOK)

@@ -267,10 +267,10 @@ func GetPlayerOpponentsById(id int) ([]*models.PlayerOpponent, error) {
 func GetPlayerBySlackName(slackName string) (*models.Player, error) {
 	p := new(models.Player)
 	err := models.DB.QueryRow(`
-		SELECT id, name, nickname, slack_name, profile_pic_url 
+		SELECT id, name, nickname, slack_name, profile_pic_url, is_admin
 		FROM player 
 		WHERE slack_name = ?
-	`, slackName).Scan(&p.ID, &p.Name, &p.Nickname, &p.SlackName, &p.ProfilePicUrl)
+	`, slackName).Scan(&p.ID, &p.Name, &p.Nickname, &p.SlackName, &p.ProfilePicUrl, &p.IsAdmin)
 	
 	if err != nil {
 		return nil, err

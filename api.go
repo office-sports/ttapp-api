@@ -79,6 +79,17 @@ func main() {
 	router.HandleFunc("/games/{id}", handlers.GetGameById).Methods("GET")
 	router.HandleFunc("/games/elo/fd418b58759511953bb0cb324b6ff5d2", handlers.RecalculateElo).Methods("GET")
 
+	// reschedule routes
+	router.HandleFunc("/games/{id}/reschedule", handlers.AuthMiddleware(handlers.CreateRescheduleRequest)).Methods("POST")
+	router.HandleFunc("/players/{id}/reschedule", handlers.AuthMiddleware(handlers.GetRescheduleRequestsForPlayer)).Methods("GET")
+	router.HandleFunc("/reschedule/{id}/accept", handlers.AuthMiddleware(handlers.AcceptRescheduleRequest)).Methods("POST")
+	router.HandleFunc("/reschedule/{id}/decline", handlers.AuthMiddleware(handlers.DeclineRescheduleRequest)).Methods("POST")
+	router.HandleFunc("/reschedule/{id}/counter", handlers.AuthMiddleware(handlers.CounterRescheduleRequest)).Methods("POST")
+	router.HandleFunc("/reschedule/{id}/revoke", handlers.AuthMiddleware(handlers.RevokeRescheduleRequest)).Methods("POST")
+
+	// admin routes
+	router.HandleFunc("/admin/reschedules", handlers.AuthMiddleware(handlers.AdminGetAllReschedules)).Methods("GET")
+
 	// scoring routes
 	router.HandleFunc("/points/add", handlers.AddPoint).Methods("POST")
 	router.HandleFunc("/points/del", handlers.DelPoint).Methods("POST")

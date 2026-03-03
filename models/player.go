@@ -39,6 +39,7 @@ type Player struct {
 	PPS               float32  `json:"pps"`
 	EloHistory        [][2]int `json:"elo_history"`
 	Active            int      `json:"active"`
+	IsAdmin           bool     `json:"is_admin"`
 }
 
 type PlayerAvailability struct {

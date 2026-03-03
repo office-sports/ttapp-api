@@ -1,11 +1,11 @@
 db:
-  address:
-  port:
-  username:
-  password:
-  schema:
+  address: 127.0.0.1
+  port: 3306
+  username: ttapp
+  password: ttapp
+  schema: ttapp
 api:
-  port:
+  port: 8888
 message:
   hook:
   channel_id:
