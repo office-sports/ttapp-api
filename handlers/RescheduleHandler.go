@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -50,6 +51,7 @@ func CreateRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 	// Reject if a pending request already exists for this game
 	hasPending, err := data.HasPendingRescheduleForGame(gameID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] HasPendingRescheduleForGame gameID=%d: %v", gameID, err)
 		http.Error(w, `{"error":"Failed to check existing requests"}`, http.StatusInternalServerError)
 		return
 	}
@@ -60,6 +62,7 @@ func CreateRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	id, err := data.CreateRescheduleRequest(gameID, claims.PlayerID, body.ProposedDateFrom, body.ProposedDateTo, nil)
 	if err != nil {
+		log.Printf("[RESCHEDULE] CreateRescheduleRequest gameID=%d playerID=%d: %v", gameID, claims.PlayerID, err)
 		http.Error(w, `{"error":"Failed to create reschedule request"}`, http.StatusInternalServerError)
 		return
 	}
@@ -92,6 +95,7 @@ func GetRescheduleRequestsForPlayer(w http.ResponseWriter, r *http.Request) {
 
 	requests, err := data.GetRescheduleRequestsForPlayer(playerID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] GetRescheduleRequestsForPlayer playerID=%d: %v", playerID, err)
 		http.Error(w, `{"error":"Failed to get reschedule requests"}`, http.StatusInternalServerError)
 		return
 	}
@@ -117,6 +121,7 @@ func AcceptRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	req, err := data.GetRescheduleRequestByID(reqID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] AcceptRescheduleRequest GetRescheduleRequestByID id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Reschedule request not found"}`, http.StatusNotFound)
 		return
 	}
@@ -143,12 +148,14 @@ func AcceptRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := data.UpdateRescheduleStatus(reqID, "accepted"); err != nil {
+		log.Printf("[RESCHEDULE] AcceptRescheduleRequest UpdateRescheduleStatus id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Failed to accept"}`, http.StatusInternalServerError)
 		return
 	}
 
 	// Update the game date with the agreed date
 	if err := data.UpdateGameDateOfMatch(req.GameID, agreedDate); err != nil {
+		log.Printf("[RESCHEDULE] AcceptRescheduleRequest UpdateGameDateOfMatch gameID=%d: %v", req.GameID, err)
 		http.Error(w, `{"error":"Failed to update game date"}`, http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +182,7 @@ func DeclineRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	req, err := data.GetRescheduleRequestByID(reqID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] DeclineRescheduleRequest GetRescheduleRequestByID id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Reschedule request not found"}`, http.StatusNotFound)
 		return
 	}
@@ -185,6 +193,7 @@ func DeclineRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := data.UpdateRescheduleStatus(reqID, "declined"); err != nil {
+		log.Printf("[RESCHEDULE] DeclineRescheduleRequest UpdateRescheduleStatus id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Failed to decline"}`, http.StatusInternalServerError)
 		return
 	}
@@ -212,6 +221,7 @@ func RevokeRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	req, err := data.GetRescheduleRequestByID(reqID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] RevokeRescheduleRequest GetRescheduleRequestByID id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Reschedule request not found"}`, http.StatusNotFound)
 		return
 	}
@@ -227,12 +237,14 @@ func RevokeRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := data.UpdateRescheduleStatus(reqID, "revoked"); err != nil {
+		log.Printf("[RESCHEDULE] RevokeRescheduleRequest UpdateRescheduleStatus id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Failed to revoke"}`, http.StatusInternalServerError)
 		return
 	}
 
 	// Restore original game date (may be empty if it was unset)
 	if err := data.UpdateGameDateOfMatch(req.GameID, req.OriginalDateOfMatch); err != nil {
+		log.Printf("[RESCHEDULE] RevokeRescheduleRequest UpdateGameDateOfMatch gameID=%d: %v", req.GameID, err)
 		http.Error(w, `{"error":"Failed to restore original date"}`, http.StatusInternalServerError)
 		return
 	}
@@ -258,6 +270,7 @@ func CounterRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	req, err := data.GetRescheduleRequestByID(reqID)
 	if err != nil {
+		log.Printf("[RESCHEDULE] CounterRescheduleRequest GetRescheduleRequestByID id=%d: %v", reqID, err)
 		http.Error(w, `{"error":"Reschedule request not found"}`, http.StatusNotFound)
 		return
 	}
@@ -278,6 +291,7 @@ func CounterRescheduleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Overwrite the single row for this game with the counter-proposal
 	if err := data.UpdateRescheduleByGameID(req.GameID, claims.PlayerID, body.ProposedDateFrom, body.ProposedDateTo); err != nil {
+		log.Printf("[RESCHEDULE] CounterRescheduleRequest UpdateRescheduleByGameID gameID=%d: %v", req.GameID, err)
 		http.Error(w, `{"error":"Failed to save counter proposal"}`, http.StatusInternalServerError)
 		return
 	}
